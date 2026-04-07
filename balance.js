@@ -56,9 +56,17 @@ const balance = (() => {
     return Math.abs(v - Math.round(v / mult) * mult) < tol;
   }
 
+  function getVal(rangeId, numId, fallback) {
+    const numEl   = document.getElementById(numId);
+    const rangeEl = document.getElementById(rangeId);
+    if (numEl)   { const v = parseFloat(numEl.value);   if (!isNaN(v)) return v; }
+    if (rangeEl) { const v = parseFloat(rangeEl.value); if (!isNaN(v)) return v; }
+    return fallback;
+  }
+
   function draw() {
-    const zoom        = numVal('b-zoom-num', numVal('b-zoom-range', 100)) / 100;
-    const fontSize    = numVal('b-fontsize-num', numVal('b-fontsize-range', 13));
+    const zoom        = getVal('b-zoom-range',     'b-zoom-num',     100) / 100;
+    const fontSize    = getVal('b-fontsize-range', 'b-fontsize-num', 13);
     const showRead    = isChecked('b-show-reading');
     const transparent = isChecked('b-transparent');
 
