@@ -1,11 +1,18 @@
 // cylinder.js
 
 const cylinder = (() => {
-  // Inner tube bounds as fractions of image — will refine after images load
-  const TUBE_LEFT_F   = 0.415;
-  const TUBE_RIGHT_F  = 0.505;
-  const TUBE_TOP_F    = 0.063;
-  const TUBE_BOTTOM_F = 0.975;
+  // Original image dimensions (resized to 1600×872 in images.js)
+  const IW = 1600, IH = 872;
+
+  // Cylinder inner tube bounds in original image pixels
+  // From old code: original was 2816×1536, tube left=1285, right=1530, top=130, bot=1420
+  // But our resized image is 1600×872 (scale = 1600/2816 = 0.568)
+  // These will be refined once pixel coords are confirmed
+  const SCALE = 1600 / 2816;
+  const TUBE_LEFT_O  = Math.round(1285 * SCALE);   // ~460
+  const TUBE_RIGHT_O = Math.round(1530 * SCALE);   // ~548
+  const TUBE_TOP_O   = Math.round(130  * SCALE);   // ~47
+  const TUBE_BOT_O   = Math.round(1420 * SCALE);   // ~508
 
   let img = null;
 
@@ -31,166 +38,180 @@ const cylinder = (() => {
 
   function draw() {
     const zoom        = numVal('c-zoom', 100) / 100;
-    const tickPxMaj   = numVal('c-tick', 50);    // pixels per major division (scale stretch)
-    const maxCap      = Math.max(1, numVal('c-max', 100));
+    const pxPerMajor  = numVal('c-tick', 50);      // canvas px per major division (independent of zoom)
+    const maxV        = Math.max(1, numVal('c-max', 100));
+    const minV        = 0;
     const major       = Math.max(0.01, numVal('c-major', 10));
     const subs        = Math.max(1, Math.round(numVal('c-subs', 5)));
-    const reading     = Math.min(maxCap, Math.max(0, numVal('c-reading', 42)));
+    const reading     = Math.min(maxV, Math.max(minV, numVal('c-reading', 42)));
     const unit        = strVal('c-unit', 'mL');
     const fontSize    = numVal('c-fontsize', 14);
     const showRead    = isChecked('c-show-reading');
     const transparent = isChecked('c-transparent');
 
-    // ── Sizing strategy ──
-    // Scale stretch (tickPxMaj) controls how many pixels per major division.
-    // Total scale height = numMajors * tickPxMaj.
-    // The IMAGE height is set so that the tube region exactly fits the scale height.
-    // Zoom then scales the entire canvas up/down uniformly.
-    const numMajors   = Math.ceil(maxCap / major);
-    const totalScaleH = numMajors * tickPxMaj;   // px height of the scale (before zoom)
-    const tubeFrac    = TUBE_BOTTOM_F - TUBE_TOP_F;
+    // Canvas = full image scaled by zoom
+    canvas.width  = Math.round(IW * zoom);
+    canvas.height = Math.round(IH * zoom);
 
-    const srcW = img ? img.naturalWidth  : 300;
-    const srcH = img ? img.naturalHeight : 900;
-    const imgAspect = srcW / srcH;
-
-    // Image height needed so tube height = totalScaleH
-    const baseImgH = Math.round(totalScaleH / tubeFrac);
-    const baseImgW = Math.round(baseImgH * imgAspect);
-
-    // Apply zoom uniformly
-    const canvasH = Math.round(baseImgH * zoom);
-    const canvasW = Math.round(baseImgW * zoom);
-
-    canvas.width  = canvasW;
-    canvas.height = canvasH;
-
-    ctx.clearRect(0, 0, canvasW, canvasH);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!transparent) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvasW, canvasH);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Tube bounds in canvas pixels
-    const tubeLeft   = canvasW * TUBE_LEFT_F;
-    const tubeRight  = canvasW * TUBE_RIGHT_F;
-    const tubeTop    = canvasH * TUBE_TOP_F;
-    const tubeBottom = canvasH * TUBE_BOTTOM_F;
-    const tubeW      = tubeRight - tubeLeft;
-    const tubeH      = tubeBottom - tubeTop;
+    // Tube bounds scaled by zoom
+    const tLeft  = TUBE_LEFT_O  * zoom;
+    const tRight = TUBE_RIGHT_O * zoom;
+    const tTop   = TUBE_TOP_O   * zoom;
+    const tBot   = TUBE_BOT_O   * zoom;
+    const tW     = tRight - tLeft;
+    const tH     = tBot - tTop;
+    const tCX    = (tLeft + tRight) / 2;
 
-    // Value → Y mapping
+    // Value → Y: pxPerMajor pixels per major division, going upward
+    // Bottom of tube = minV, top = determined by scale
     function valToY(v) {
-      const frac = Math.max(0, Math.min(1, v / maxCap));
-      return tubeBottom - frac * tubeH;
+      return tBot - (v - minV) * (pxPerMajor / major);
     }
 
-    // ── Liquid fill ──
-    const fillY = Math.max(tubeTop + 1, Math.min(tubeBottom - 1, valToY(reading)));
+    const fillY        = valToY(reading);
+    const clampedFillY = Math.max(tTop, Math.min(tBot, fillY));
 
-    ctx.fillStyle = 'rgba(100, 180, 230, 0.55)';
-    ctx.fillRect(tubeLeft + 1, fillY, tubeW - 2, tubeBottom - fillY);
+    // ── Liquid fill (drawn before image so glass overlays it) ──
+    if (clampedFillY < tBot) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(tLeft, tTop, tW, tH);
+      ctx.clip();
 
-    // Concave meniscus: edges higher than center
-    const menDepth = Math.min(tubeW * 0.22, 10 * zoom);
-    const mEdgeY   = fillY - menDepth;
+      // Liquid body with gradient
+      const grad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
+      grad.addColorStop(0,    'rgba(80,170,225,0.88)');
+      grad.addColorStop(0.18, 'rgba(130,205,245,0.70)');
+      grad.addColorStop(0.82, 'rgba(130,205,245,0.70)');
+      grad.addColorStop(1,    'rgba(70,155,215,0.88)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(tLeft, clampedFillY, tW, tBot - clampedFillY);
 
-    ctx.beginPath();
-    ctx.moveTo(tubeLeft + 1, mEdgeY);
-    ctx.bezierCurveTo(
-      tubeLeft  + tubeW * 0.30, fillY + menDepth * 0.6,
-      tubeRight - tubeW * 0.30, fillY + menDepth * 0.6,
-      tubeRight - 1, mEdgeY
-    );
-    ctx.lineTo(tubeRight - 1, tubeBottom);
-    ctx.lineTo(tubeLeft  + 1, tubeBottom);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(100, 180, 230, 0.55)';
-    ctx.fill();
+      // Concave meniscus: edges curve UP, center is at clampedFillY (the reading)
+      const mDepth = tW * 0.10;
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(tLeft, clampedFillY - mDepth);
+      ctx.bezierCurveTo(
+        tLeft + tW * 0.25, clampedFillY - mDepth * 0.2,
+        tCX   - tW * 0.05, clampedFillY,
+        tCX,               clampedFillY
+      );
+      ctx.bezierCurveTo(
+        tCX   + tW * 0.05, clampedFillY,
+        tRight - tW * 0.25, clampedFillY - mDepth * 0.2,
+        tRight, clampedFillY - mDepth
+      );
+      ctx.lineTo(tRight, tBot);
+      ctx.lineTo(tLeft,  tBot);
+      ctx.closePath();
+      ctx.fill();
 
-    // Meniscus outline
-    ctx.beginPath();
-    ctx.moveTo(tubeLeft + 1, mEdgeY);
-    ctx.bezierCurveTo(
-      tubeLeft  + tubeW * 0.30, fillY + menDepth * 0.6,
-      tubeRight - tubeW * 0.30, fillY + menDepth * 0.6,
-      tubeRight - 1, mEdgeY
-    );
-    ctx.strokeStyle = 'rgba(40, 120, 180, 0.85)';
-    ctx.lineWidth   = Math.max(1, 1.5 * zoom);
-    ctx.stroke();
+      // Meniscus outline
+      ctx.strokeStyle = 'rgba(20,110,175,0.95)';
+      ctx.lineWidth = Math.max(1.5, 2.2 * zoom);
+      ctx.beginPath();
+      ctx.moveTo(tLeft, clampedFillY - mDepth);
+      ctx.bezierCurveTo(
+        tLeft + tW * 0.25, clampedFillY - mDepth * 0.2,
+        tCX   - tW * 0.05, clampedFillY,
+        tCX,               clampedFillY
+      );
+      ctx.bezierCurveTo(
+        tCX   + tW * 0.05, clampedFillY,
+        tRight - tW * 0.25, clampedFillY - mDepth * 0.2,
+        tRight, clampedFillY - mDepth
+      );
+      ctx.stroke();
+
+      // Glass glare highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillRect(tLeft + tW * 0.64, clampedFillY, tW * 0.11, tBot - clampedFillY);
+
+      ctx.restore();
+    }
 
     // ── Draw cylinder image over liquid ──
     if (img) {
-      ctx.drawImage(img, 0, 0, canvasW, canvasH);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     } else {
       ctx.strokeStyle = '#999';
       ctx.lineWidth = 2;
-      ctx.strokeRect(tubeLeft, tubeTop, tubeW, tubeH);
+      ctx.strokeRect(tLeft, tTop, tW, tH);
     }
 
-    // ── Ticks on RIGHT side of tube ──
-    const tickStartX = tubeRight + canvasW * 0.008;
-    const subPxMaj   = (tickPxMaj * zoom) / subs;
-    const totalSubs  = numMajors * subs;
+    // ── Tick marks to the RIGHT of tube ──
+    const tickMajW = tW * 0.60;
+    const tickMedW = tW * 0.40;
+    const tickMinW = tW * 0.25;
+
+    const subVal    = major / subs;
+    const decPlaces = Math.max(0, -Math.floor(Math.log10(subVal)));
 
     ctx.save();
-    ctx.strokeStyle  = '#222';
-    ctx.fillStyle    = '#222';
-    ctx.lineWidth    = Math.max(0.8, zoom * 0.8);
+    ctx.strokeStyle  = '#111';
+    ctx.fillStyle    = '#111';
+    ctx.lineWidth    = Math.max(0.8, 1.2 * zoom);
     ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
     ctx.textAlign    = 'left';
     ctx.textBaseline = 'middle';
 
-    for (let i = 0; i <= totalSubs; i++) {
-      const val = (i / subs) * major;
-      if (val > maxCap + 0.0001) break;
+    let tickIdx = 0;
+    let v = minV;
+    while (valToY(v) >= tTop - 2) {
+      const y = valToY(v);
+      if (y <= tBot + 2) {
+        const isMajor = (tickIdx % subs === 0);
+        const isMid   = !isMajor && subs >= 4 && (tickIdx % Math.floor(subs / 2) === 0);
+        const tw = isMajor ? tickMajW : isMid ? tickMedW : tickMinW;
 
-      const y = valToY(val);
-      if (y < tubeTop - 2 || y > tubeBottom + 2) continue;
+        ctx.beginPath();
+        ctx.moveTo(tRight, y);
+        ctx.lineTo(tRight + tw, y);
+        ctx.stroke();
 
-      const isMajor = (i % subs === 0);
-      const isMid   = !isMajor && (subs % 2 === 0) && (i % subs === subs / 2);
-      const tickLen = isMajor ? 16 * zoom : (isMid ? 10 * zoom : 6 * zoom);
-
-      ctx.beginPath();
-      ctx.moveTo(tickStartX, y);
-      ctx.lineTo(tickStartX + tickLen, y);
-      ctx.stroke();
-
-      if (isMajor) {
-        const decPlaces = String(major).includes('.')
-          ? String(major).split('.')[1].length : 0;
-        ctx.fillText(val.toFixed(decPlaces), tickStartX + tickLen + 4, y);
+        if (isMajor) {
+          ctx.fillText(parseFloat(v.toFixed(decPlaces)) + ' ' + unit, tRight + tickMajW + 5, y);
+        }
       }
+      tickIdx++;
+      v = parseFloat((minV + tickIdx * subVal).toFixed(10));
     }
-
-    // Unit label at top
-    ctx.textBaseline = 'bottom';
-    ctx.fillText(unit, tickStartX, tubeTop - 4);
     ctx.restore();
 
     // ── Dashed reading line ──
-    ctx.save();
-    ctx.strokeStyle = 'rgba(200, 50, 50, 0.75)';
-    ctx.lineWidth   = Math.max(1, zoom);
-    ctx.setLineDash([4 * zoom, 3 * zoom]);
-    ctx.beginPath();
-    ctx.moveTo(tubeLeft - 4, fillY);
-    ctx.lineTo(tubeRight + 20 * zoom, fillY);
-    ctx.stroke();
-    ctx.restore();
-
-    // ── Reading label ──
-    if (showRead) {
-      const decPlaces = String(major).includes('.')
-        ? String(major).split('.')[1].length : 0;
+    if (fillY >= tTop - 30 && fillY <= tBot + 10) {
       ctx.save();
-      ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-      ctx.fillStyle    = '#c82020';
-      ctx.textAlign    = 'left';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText(`${reading.toFixed(decPlaces)} ${unit}`, tickStartX + 22 * zoom, fillY - 2);
+      ctx.strokeStyle = '#c00';
+      ctx.fillStyle   = '#c00';
+      ctx.lineWidth   = Math.max(1.5, 2 * zoom);
+      ctx.setLineDash([5 * zoom, 3 * zoom]);
+      ctx.beginPath();
+      ctx.moveTo(tLeft - 15 * zoom, clampedFillY);
+      ctx.lineTo(tRight + tickMajW + 5, clampedFillY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Reading label to the right
+      if (showRead) {
+        const lfs = fontSize;
+        ctx.font = `bold ${lfs}px 'Segoe UI', sans-serif`;
+        ctx.textAlign    = 'left';
+        ctx.textBaseline = 'bottom';
+        const lblText = reading + ' ' + unit;
+        const lblX = tRight + tickMajW + 8;
+        const lblW = ctx.measureText(lblText).width + 14;
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.fillRect(lblX - 4, clampedFillY - lfs - 2, lblW, lfs + 8);
+        ctx.fillStyle = '#c00';
+        ctx.fillText(lblText, lblX, clampedFillY + 2);
+      }
       ctx.restore();
     }
   }
