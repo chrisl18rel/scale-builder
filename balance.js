@@ -43,6 +43,10 @@ const balance = (() => {
   ['b1-scale-y','b2-scale-y','b3-scale-y'].forEach(base => {
     bindSliderWithInput(base + '-range', base + '-num', () => draw());
   });
+  // Per-beam arrow Y offset
+  ['b1-arrow-y','b2-arrow-y','b3-arrow-y'].forEach(base => {
+    bindSliderWithInput(base + '-range', base + '-num', () => draw());
+  });
 
   document.getElementById('b-show-reading').addEventListener('change', draw);
   document.getElementById('b-transparent').addEventListener('change', () => {
@@ -90,8 +94,11 @@ const balance = (() => {
       getVal('b3-scale-y-range','b3-scale-y-num', 0),
     ];
 
-    // Debug: confirm scaleNumShift is being read (remove after testing)
-    // console.log('scaleNumShift:', scaleNumShift);
+    const arrowOffsets = [
+      getVal('b1-arrow-y-range','b1-arrow-y-num', 0),
+      getVal('b2-arrow-y-range','b2-arrow-y-num', 0),
+      getVal('b3-arrow-y-range','b3-arrow-y-num', 0),
+    ];
 
     const b1step = Math.max(0.01,  numVal('b1-step', 10));
     const b2step = Math.max(0.01,  numVal('b2-step', 100));
@@ -231,20 +238,20 @@ const balance = (() => {
         ctx.beginPath(); ctx.moveTo(riderX, rY + 2); ctx.lineTo(riderX, rY + rH - 2); ctx.stroke();
 
         // Arrow: tip floats above topRail, stem goes from tip down to rider top
-        // arrowTipY is above the beam; stem connects down to rY (silver top)
-        const arrowTipY  = topY - 18 * zoom;  // above the dark rail
+        // arrowOffsets[idx] shifts the arrow up (negative) or down (positive)
+        const arrowTipY  = topY - 18 * zoom + arrowOffsets[idx];
         const aw = Math.max(5, 7 * zoom);
         // Arrowhead pointing DOWN (tip is lowest point of the triangle)
-        const headBaseY = arrowTipY;           // flat base of triangle
-        const headTipY  = arrowTipY + aw * 1.6; // pointed tip, below base
+        const headBaseY = arrowTipY;
+        const headTipY  = arrowTipY + aw * 1.6;
         ctx.fillStyle = '#c00'; ctx.strokeStyle = '#c00';
         ctx.lineWidth = Math.max(1, 1.5 * zoom);
-        // Stem from arrowhead down to rider top
+        // Stem from arrowhead tip down to rider top — grows/shrinks with offset
         ctx.beginPath();
         ctx.moveTo(riderX, headTipY);
         ctx.lineTo(riderX, rY);
         ctx.stroke();
-        // Arrowhead (downward-pointing triangle)
+        // Arrowhead
         ctx.beginPath();
         ctx.moveTo(riderX - aw, headBaseY);
         ctx.lineTo(riderX + aw, headBaseY);
