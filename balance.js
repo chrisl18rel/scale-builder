@@ -1,8 +1,6 @@
 // balance.js
 
 const balance = (() => {
-  // Beam layout as fractions of total image height
-  // These are estimates from the blank image — adjust if overlay is off
   const BEAMS = [
     { railTopF: 0.10, railBotF: 0.28 },
     { railTopF: 0.37, railBotF: 0.55 },
@@ -17,11 +15,10 @@ const balance = (() => {
   const canvas = document.getElementById('balance-canvas');
   const ctx    = canvas.getContext('2d');
 
-  loadImage('blank_triple_beam_balance.png')
+  loadImageFromDataURI(BALANCE_IMG)
     .then(loaded => { img = loaded; draw(); })
     .catch(err => { console.error('Balance image failed:', err); draw(); });
 
-  // Bind controls
   ['b1-min','b1-max','b1-step','b1-reading',
    'b2-min','b2-max','b2-step','b2-reading',
    'b3-min','b3-max','b3-step','b3-reading','b3-subs'].forEach(id => {
@@ -43,27 +40,9 @@ const balance = (() => {
     const transparent = isChecked('b-transparent');
 
     const beamConfigs = [
-      {
-        min: numVal('b1-min', 0),
-        max: numVal('b1-max', 100),
-        step: Math.max(0.01, numVal('b1-step', 10)),
-        reading: numVal('b1-reading', 0),
-        subs: 1   // beams 1 & 2 use only major ticks at each step
-      },
-      {
-        min: numVal('b2-min', 0),
-        max: numVal('b2-max', 500),
-        step: Math.max(0.01, numVal('b2-step', 100)),
-        reading: numVal('b2-reading', 100),
-        subs: 1
-      },
-      {
-        min: numVal('b3-min', 0),
-        max: numVal('b3-max', 10),
-        step: Math.max(0.001, numVal('b3-step', 1)),
-        reading: numVal('b3-reading', 3.5),
-        subs: Math.max(1, Math.round(numVal('b3-subs', 10)))
-      },
+      { min: numVal('b1-min',0), max: numVal('b1-max',100), step: Math.max(0.01,numVal('b1-step',10)),   reading: numVal('b1-reading',0),   subs: 1 },
+      { min: numVal('b2-min',0), max: numVal('b2-max',500), step: Math.max(0.01,numVal('b2-step',100)),  reading: numVal('b2-reading',100), subs: 1 },
+      { min: numVal('b3-min',0), max: numVal('b3-max',10),  step: Math.max(0.001,numVal('b3-step',1)),   reading: numVal('b3-reading',3.5), subs: Math.max(1, Math.round(numVal('b3-subs',10))) },
     ];
 
     const srcW = img ? img.naturalWidth  : 800;
@@ -93,18 +72,17 @@ const balance = (() => {
     const scaleWidth = scaleRight - scaleLeft;
 
     BEAMS.forEach((beam, idx) => {
-      const cfg      = beamConfigs[idx];
-      const railTopY = canvasH * beam.railTopF;
-      const railBotY = canvasH * beam.railBotF;
+      const cfg       = beamConfigs[idx];
+      const railTopY  = canvasH * beam.railTopF;
+      const railBotY  = canvasH * beam.railBotF;
       const beamBodyH = railBotY - railTopY;
-      const range    = cfg.max - cfg.min;
+      const range     = cfg.max - cfg.min;
       if (range <= 0) return;
 
-      const pxPerUnit = scaleWidth / range;
-      const numSteps  = Math.round(range / cfg.step);
-      const subPx     = cfg.subs > 1 ? (pxPerUnit * cfg.step) / cfg.subs : 0;
+      const numSteps = Math.round(range / cfg.step);
+      const stepPx   = scaleWidth / numSteps;
+      const subPx    = cfg.subs > 1 ? stepPx / cfg.subs : 0;
 
-      // ── Ticks ──
       ctx.save();
       ctx.strokeStyle  = '#111';
       ctx.fillStyle    = '#111';
@@ -114,11 +92,10 @@ const balance = (() => {
       ctx.textBaseline = 'top';
 
       for (let i = 0; i <= numSteps; i++) {
-        const val  = cfg.min + i * cfg.step;
+        const val = cfg.min + i * cfg.step;
         if (val > cfg.max + cfg.step * 0.01) break;
-        const x    = scaleLeft + (val - cfg.min) / range * scaleWidth;
+        const x   = scaleLeft + i * stepPx;
 
-        // Major tick (every step is major for beams 1&2; for beam 3, every step is major)
         const majH = beamBodyH * 0.55;
         ctx.beginPath();
         ctx.moveTo(x, railTopY);
@@ -129,7 +106,6 @@ const balance = (() => {
           ? String(cfg.step).split('.')[1].length : 0;
         ctx.fillText(val.toFixed(decPlaces), x, railTopY + majH + 2);
 
-        // Subdivisions (beam 3 only)
         if (cfg.subs > 1 && i < numSteps) {
           for (let s = 1; s < cfg.subs; s++) {
             const subX = x + s * subPx;
@@ -145,22 +121,19 @@ const balance = (() => {
       }
       ctx.restore();
 
-      // ── Rider ──
+      // Reading label above beam
       const clampedReading = Math.max(cfg.min, Math.min(cfg.max, cfg.reading));
-      const riderX = scaleLeft + (clampedReading - cfg.min) / range * scaleWidth;
+      const riderX = scaleLeft + ((clampedReading - cfg.min) / range) * scaleWidth;
 
-      // Reading label ABOVE the beam (above railTopY), clear of the rider
       if (showRead) {
         const decPlaces = String(cfg.step).includes('.')
           ? String(cfg.step).split('.')[1].length : 0;
-        const label = clampedReading.toFixed(decPlaces);
         ctx.save();
         ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
         ctx.fillStyle    = '#c82020';
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'bottom';
-        // Position well above the rail top so it clears the rider shape
-        ctx.fillText(label, riderX, railTopY - fontSize * 0.5 - 6);
+        ctx.fillText(clampedReading.toFixed(decPlaces), riderX, railTopY - fontSize * 0.5 - 6);
         ctx.restore();
       }
 
@@ -169,34 +142,28 @@ const balance = (() => {
   }
 
   function drawRider(ctx, x, railTopY, railBotY, zoom) {
-    const beamH  = railBotY - railTopY;
+    const beamH   = railBotY - railTopY;
     const riderHW = Math.max(5, 7 * zoom);
     const arrowHW = Math.max(3, 4 * zoom);
 
-    // Arrow tip is at railTopY (points at the scale)
     const arrowTipY  = railTopY;
     const arrowBaseY = arrowTipY - arrowHW * 1.8;
-
-    // Rider body: trapezoid sitting ON TOP of the beam (above railTopY)
     const riderBotY  = arrowBaseY;
     const riderTopY  = riderBotY - beamH * 0.45;
 
     ctx.save();
-
-    // Rider body
     ctx.fillStyle   = 'rgba(50, 55, 65, 0.88)';
     ctx.strokeStyle = '#1a1a1a';
     ctx.lineWidth   = Math.max(0.8, zoom * 0.7);
     ctx.beginPath();
-    ctx.moveTo(x - riderHW, riderTopY);
-    ctx.lineTo(x + riderHW, riderTopY);
+    ctx.moveTo(x - riderHW,       riderTopY);
+    ctx.lineTo(x + riderHW,       riderTopY);
     ctx.lineTo(x + riderHW * 0.55, riderBotY);
     ctx.lineTo(x - riderHW * 0.55, riderBotY);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // Center notch line
     ctx.strokeStyle = 'rgba(200,200,200,0.7)';
     ctx.lineWidth   = Math.max(0.7, zoom * 0.5);
     ctx.beginPath();
@@ -204,12 +171,11 @@ const balance = (() => {
     ctx.lineTo(x, riderBotY - 2);
     ctx.stroke();
 
-    // Arrowhead pointing DOWN toward scale
     ctx.fillStyle = '#e03030';
     ctx.beginPath();
-    ctx.moveTo(x,            arrowTipY);
-    ctx.lineTo(x - arrowHW,  arrowBaseY);
-    ctx.lineTo(x + arrowHW,  arrowBaseY);
+    ctx.moveTo(x,           arrowTipY);
+    ctx.lineTo(x - arrowHW, arrowBaseY);
+    ctx.lineTo(x + arrowHW, arrowBaseY);
     ctx.closePath();
     ctx.fill();
 
