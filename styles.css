@@ -11,6 +11,11 @@
   --text: #e8eaf0;
   --text-muted: #8a92a6;
   --export: #4a90e2;
+  --slider-zoom:   #4a90e2;
+  --slider-tick:   #26c6da;
+  --slider-font:   #ab7ae0;
+  --slider-offset: #ef6c6c;
+  --slider-shift:  #4caf79;
 }
 
 body {
@@ -81,11 +86,21 @@ body {
   background: var(--surface);
   border-right: 1px solid var(--border);
   overflow-y: auto;
-  padding: 16px;
+  overflow-x: hidden;
+  padding: 16px 10px 16px 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
+.controls-panel::-webkit-scrollbar { width: 4px; }
+.controls-panel::-webkit-scrollbar-track { background: transparent; margin-top: 4px; }
+.controls-panel::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
 .control-group {
   background: var(--surface2);
   border-radius: 6px;
@@ -141,14 +156,29 @@ input[type="number"]:focus { border-color: var(--accent); }
   cursor: pointer;
 }
 .slider-input-row input[type="number"] {
-  width: 58px;
-  min-width: 58px;
+  width: 54px;
+  min-width: 54px;
   padding: 4px 6px;
   font-size: 12px;
   text-align: right;
 }
 
-/* Legacy slider-row (kept for b3-subs) */
+/* ── Slider color categories ── */
+.slider-zoom   .slider-input-row input[type="range"] { accent-color: var(--slider-zoom);   }
+.slider-tick   .slider-input-row input[type="range"] { accent-color: var(--slider-tick);   }
+.slider-font   .slider-input-row input[type="range"] { accent-color: var(--slider-font);   }
+.slider-offset .slider-input-row input[type="range"] { accent-color: var(--slider-offset); }
+.slider-shift  .slider-input-row input[type="range"] { accent-color: var(--slider-shift);  }
+
+/* ── Display card section divider ── */
+.display-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 4px 0 2px;
+  opacity: 0.7;
+}
+
+/* ── Legacy slider-row (b3-subs) ── */
 .slider-row {
   display: flex;
   align-items: center;
