@@ -1,0 +1,285 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scale Builder</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-logo">
+      <div class="logo-icon">📐</div>
+      <div class="logo-text">
+        <h1>Scale Builder</h1>
+        <p>Generate measurement instrument images for science class</p>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="ruler">📏 Ruler</button>
+    <button class="tab-btn" data-tab="cylinder">🧪 Graduated Cylinder</button>
+    <button class="tab-btn" data-tab="balance">⚖️ Triple Beam Balance</button>
+  </nav>
+
+  <main class="app-body">
+
+    <!-- ═══════════════════ RULER TAB ═══════════════════ -->
+    <section id="tab-ruler" class="tab-panel active">
+      <div class="panel-layout">
+        <aside class="controls-panel">
+
+          <div class="control-group">
+            <div class="group-title">SCALE SETTINGS</div>
+            <label>Unit Label</label>
+            <input type="text" id="r-unit" value="cm" />
+
+            <div class="two-col">
+              <div>
+                <label>Major Division</label>
+                <input type="number" id="r-major" value="1" min="0.01" step="0.01" />
+              </div>
+              <div>
+                <label>Subdivisions</label>
+                <input type="number" id="r-subs" value="10" min="1" step="1" />
+              </div>
+            </div>
+
+            <label>Start Value</label>
+            <input type="number" id="r-start" value="0" step="0.01" />
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">READING</div>
+            <label>Reading Value</label>
+            <input type="number" id="r-reading" value="4.3" step="0.01" />
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">ARROW STYLE</div>
+            <div class="btn-group">
+              <button class="style-btn active" id="r-arrow-pointer" onclick="ruler.setArrowStyle('pointer')">▼ Pointer Only</button>
+              <button class="style-btn" id="r-arrow-line" onclick="ruler.setArrowStyle('line')">▼— Pointer + Line</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">DISPLAY</div>
+            <label>Image Zoom</label>
+            <div class="slider-row">
+              <input type="range" id="r-zoom" min="30" max="200" value="100" />
+              <span id="r-zoom-val" class="slider-val">100%</span>
+            </div>
+            <label>Tick Spacing (px/major div)</label>
+            <div class="slider-row">
+              <input type="range" id="r-tick" min="30" max="300" value="120" />
+              <span id="r-tick-val" class="slider-val">120px</span>
+            </div>
+            <label>Text Size</label>
+            <div class="slider-row">
+              <input type="range" id="r-fontsize" min="8" max="36" value="14" />
+              <span id="r-fontsize-val" class="slider-val">14px</span>
+            </div>
+            <div class="toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" id="r-show-reading" checked />
+                Show reading value
+              </label>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">EXPORT</div>
+            <label class="toggle-label">
+              <input type="checkbox" id="r-transparent" />
+              Transparent background
+            </label>
+            <button class="export-btn" onclick="ruler.exportPNG()">⬇ Export PNG</button>
+          </div>
+        </aside>
+
+        <div class="preview-panel">
+          <div class="preview-label">Live Preview — scroll right if needed</div>
+          <div class="canvas-scroll-wrapper">
+            <div id="r-checker" class="checker-bg">
+              <canvas id="ruler-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ CYLINDER TAB ═══════════════════ -->
+    <section id="tab-cylinder" class="tab-panel">
+      <div class="panel-layout">
+        <aside class="controls-panel">
+
+          <div class="control-group">
+            <div class="group-title">SCALE SETTINGS</div>
+            <div class="two-col">
+              <div>
+                <label>Max Capacity</label>
+                <input type="number" id="c-max" value="100" min="1" />
+              </div>
+              <div>
+                <label>Unit</label>
+                <input type="text" id="c-unit" value="mL" />
+              </div>
+            </div>
+
+            <div class="two-col">
+              <div>
+                <label>Major Division</label>
+                <input type="number" id="c-major" value="10" min="0.1" step="0.1" />
+              </div>
+              <div>
+                <label>Subdivisions</label>
+                <input type="number" id="c-subs" value="5" min="1" step="1" />
+              </div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">READING</div>
+            <label>Reading Value (bottom of meniscus)</label>
+            <input type="number" id="c-reading" value="42" step="0.1" />
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">DISPLAY</div>
+            <label>Image Zoom</label>
+            <div class="slider-row">
+              <input type="range" id="c-zoom" min="30" max="200" value="100" />
+              <span id="c-zoom-val" class="slider-val">100%</span>
+            </div>
+            <label>Scale Stretch (px/major div)</label>
+            <div class="slider-row">
+              <input type="range" id="c-tick" min="10" max="200" value="50" />
+              <span id="c-tick-val" class="slider-val">50px</span>
+            </div>
+            <label>Text Size</label>
+            <div class="slider-row">
+              <input type="range" id="c-fontsize" min="8" max="36" value="14" />
+              <span id="c-fontsize-val" class="slider-val">14px</span>
+            </div>
+            <div class="toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" id="c-show-reading" checked />
+                Show reading value
+              </label>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">EXPORT</div>
+            <label class="toggle-label">
+              <input type="checkbox" id="c-transparent" />
+              Transparent background
+            </label>
+            <button class="export-btn" onclick="cylinder.exportPNG()">⬇ Export PNG</button>
+          </div>
+        </aside>
+
+        <div class="preview-panel">
+          <div class="preview-label">Live Preview — scroll down if needed</div>
+          <div class="canvas-scroll-wrapper">
+            <div id="c-checker" class="checker-bg">
+              <canvas id="cylinder-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ BALANCE TAB ═══════════════════ -->
+    <section id="tab-balance" class="tab-panel">
+      <div class="panel-layout">
+        <aside class="controls-panel">
+
+          <div class="control-group">
+            <div class="group-title">BEAM 1 (Top)</div>
+            <div class="two-col">
+              <div><label>Min</label><input type="number" id="b1-min" value="0" step="1" /></div>
+              <div><label>Max</label><input type="number" id="b1-max" value="100" step="1" /></div>
+            </div>
+            <label>Step Size</label>
+            <input type="number" id="b1-step" value="10" step="1" min="1" />
+            <label>Reading</label>
+            <input type="number" id="b1-reading" value="0" step="1" />
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">BEAM 2 (Middle)</div>
+            <div class="two-col">
+              <div><label>Min</label><input type="number" id="b2-min" value="0" step="1" /></div>
+              <div><label>Max</label><input type="number" id="b2-max" value="500" step="1" /></div>
+            </div>
+            <label>Step Size</label>
+            <input type="number" id="b2-step" value="100" step="1" min="1" />
+            <label>Reading</label>
+            <input type="number" id="b2-reading" value="100" step="1" />
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">BEAM 3 (Bottom)</div>
+            <div class="two-col">
+              <div><label>Min</label><input type="number" id="b3-min" value="0" step="1" /></div>
+              <div><label>Max</label><input type="number" id="b3-max" value="10" step="1" /></div>
+            </div>
+            <label>Step Size</label>
+            <input type="number" id="b3-step" value="1" step="0.1" min="0.01" />
+            <label>Reading</label>
+            <input type="number" id="b3-reading" value="3.5" step="0.1" />
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">DISPLAY</div>
+            <label>Image Zoom</label>
+            <div class="slider-row">
+              <input type="range" id="b-zoom" min="30" max="200" value="100" />
+              <span id="b-zoom-val" class="slider-val">100%</span>
+            </div>
+            <label>Text Size</label>
+            <div class="slider-row">
+              <input type="range" id="b-fontsize" min="8" max="36" value="13" />
+              <span id="b-fontsize-val" class="slider-val">13px</span>
+            </div>
+            <div class="toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" id="b-show-reading" checked />
+                Show reading value
+              </label>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">EXPORT</div>
+            <label class="toggle-label">
+              <input type="checkbox" id="b-transparent" />
+              Transparent background
+            </label>
+            <button class="export-btn" onclick="balance.exportPNG()">⬇ Export PNG</button>
+          </div>
+        </aside>
+
+        <div class="preview-panel">
+          <div class="preview-label">Live Preview — scroll right if needed</div>
+          <div class="canvas-scroll-wrapper">
+            <div id="b-checker" class="checker-bg">
+              <canvas id="balance-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+  <script src="ruler.js"></script>
+  <script src="cylinder.js"></script>
+  <script src="balance.js"></script>
+</body>
+</html>
