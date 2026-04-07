@@ -1,9 +1,12 @@
 // ruler.js
 
 const ruler = (() => {
-  const SCALE_LEFT_PAD_F = 0.018;
-  const TICK_TOP_F       = 0.06;
-  const TICK_AREA_H_F    = 0.70;
+  // Calibrated from pixel measurements: canvas 1240×249
+  // Scale left x=20 → 20/1240=0.016, right x=1220 → pad right=20/1240=0.016
+  // Tick top y≈131 out of 249 → 131/249=0.526 (ticks are in bottom half of ruler)
+  const SCALE_LEFT_PAD_F = 0.016;
+  const TICK_TOP_F       = 0.08;   // start ticks near top of ruler face (image top edge of wooden body)
+  const TICK_AREA_H_F    = 0.55;   // ticks occupy ~55% of ruler height downward
 
   let img        = null;
   let arrowStyle = 'pointer';
