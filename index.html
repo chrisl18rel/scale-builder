@@ -16,7 +16,7 @@
         <p>Generate measurement instrument images for science class</p>
       </div>
     </div>
-    <div class="app-version">v1.5</div>
+    <div class="app-version">v1.6</div>
   </header>
 
   <nav class="tab-nav">
@@ -47,13 +47,13 @@
               </div>
             </div>
             <label>Start Value</label>
-            <input type="number" id="r-start" value="0" step="0.01" />
+            <input type="number" id="r-start" value="0" min="0" step="0.01" />
           </div>
 
           <div class="control-group">
             <div class="group-title">READING</div>
             <label>Reading Value</label>
-            <input type="number" id="r-reading" value="4.3" step="0.01" />
+            <input type="number" id="r-reading" value="4.3" min="0" step="0.01" />
           </div>
 
           <div class="control-group">
@@ -66,20 +66,20 @@
 
           <div class="control-group">
             <div class="group-title">DISPLAY</div>
-            <label>Image Zoom</label>
-            <div class="slider-row">
-              <input type="range" id="r-zoom" min="30" max="200" value="100" />
-              <span id="r-zoom-val" class="slider-val">100%</span>
+            <label>Image Zoom (%)</label>
+            <div class="slider-input-row">
+              <input type="range" id="r-zoom-range" min="20" max="200" value="100" />
+              <input type="number" id="r-zoom-num" value="100" min="20" max="200" step="1" />
             </div>
             <label>Tick Spacing (px/major div)</label>
-            <div class="slider-row">
-              <input type="range" id="r-tick" min="30" max="300" value="120" />
-              <span id="r-tick-val" class="slider-val">120px</span>
+            <div class="slider-input-row">
+              <input type="range" id="r-tick-range" min="20" max="500" value="120" />
+              <input type="number" id="r-tick-num" value="120" min="20" max="500" step="1" />
             </div>
-            <label>Text Size</label>
-            <div class="slider-row">
-              <input type="range" id="r-fontsize" min="8" max="36" value="14" />
-              <span id="r-fontsize-val" class="slider-val">14px</span>
+            <label>Text Size (px)</label>
+            <div class="slider-input-row">
+              <input type="range" id="r-fontsize-range" min="6" max="48" value="14" />
+              <input type="number" id="r-fontsize-num" value="14" min="6" max="48" step="1" />
             </div>
             <div class="toggle-row">
               <label class="toggle-label">
@@ -142,25 +142,25 @@
           <div class="control-group">
             <div class="group-title">READING</div>
             <label>Reading Value (bottom of meniscus)</label>
-            <input type="number" id="c-reading" value="42" step="0.1" />
+            <input type="number" id="c-reading" value="42" min="0" step="0.1" />
           </div>
 
           <div class="control-group">
             <div class="group-title">DISPLAY</div>
-            <label>Image Zoom</label>
-            <div class="slider-row">
-              <input type="range" id="c-zoom" min="30" max="200" value="100" />
-              <span id="c-zoom-val" class="slider-val">100%</span>
+            <label>Image Zoom (%)</label>
+            <div class="slider-input-row">
+              <input type="range" id="c-zoom-range" min="20" max="200" value="100" />
+              <input type="number" id="c-zoom-num" value="100" min="20" max="200" step="1" />
             </div>
             <label>Scale Stretch (px/major div)</label>
-            <div class="slider-row">
-              <input type="range" id="c-tick" min="10" max="200" value="50" />
-              <span id="c-tick-val" class="slider-val">50px</span>
+            <div class="slider-input-row">
+              <input type="range" id="c-tick-range" min="10" max="400" value="50" />
+              <input type="number" id="c-tick-num" value="50" min="10" max="400" step="1" />
             </div>
-            <label>Text Size</label>
-            <div class="slider-row">
-              <input type="range" id="c-fontsize" min="8" max="36" value="14" />
-              <span id="c-fontsize-val" class="slider-val">14px</span>
+            <label>Text Size (px)</label>
+            <div class="slider-input-row">
+              <input type="range" id="c-fontsize-range" min="6" max="48" value="14" />
+              <input type="number" id="c-fontsize-num" value="14" min="6" max="48" step="1" />
             </div>
             <div class="toggle-row">
               <label class="toggle-label">
@@ -199,31 +199,31 @@
           <div class="control-group">
             <div class="group-title">BEAM 1 (Top)</div>
             <div class="two-col">
-              <div><label>Min</label><input type="number" id="b1-min" value="0" step="1" /></div>
+              <div><label>Min</label><input type="number" id="b1-min" value="0" min="0" step="1" /></div>
               <div><label>Max</label><input type="number" id="b1-max" value="100" step="1" /></div>
             </div>
             <label>Step Size</label>
             <input type="number" id="b1-step" value="10" step="1" min="1" />
             <label>Reading</label>
-            <input type="number" id="b1-reading" value="0" step="10" />
+            <input type="number" id="b1-reading" value="0" min="0" step="10" />
           </div>
 
           <div class="control-group">
             <div class="group-title">BEAM 2 (Middle)</div>
             <div class="two-col">
-              <div><label>Min</label><input type="number" id="b2-min" value="0" step="1" /></div>
+              <div><label>Min</label><input type="number" id="b2-min" value="0" min="0" step="1" /></div>
               <div><label>Max</label><input type="number" id="b2-max" value="500" step="1" /></div>
             </div>
             <label>Step Size</label>
             <input type="number" id="b2-step" value="100" step="1" min="1" />
             <label>Reading</label>
-            <input type="number" id="b2-reading" value="100" step="100" />
+            <input type="number" id="b2-reading" value="100" min="0" step="100" />
           </div>
 
           <div class="control-group">
             <div class="group-title">BEAM 3 (Bottom)</div>
             <div class="two-col">
-              <div><label>Min</label><input type="number" id="b3-min" value="0" step="1" /></div>
+              <div><label>Min</label><input type="number" id="b3-min" value="0" min="0" step="1" /></div>
               <div><label>Max</label><input type="number" id="b3-max" value="10" step="1" /></div>
             </div>
             <label>Step Size</label>
@@ -234,20 +234,20 @@
               <span id="b3-subs-val" class="slider-val">10</span>
             </div>
             <label>Reading</label>
-            <input type="number" id="b3-reading" value="3.5" step="0.1" />
+            <input type="number" id="b3-reading" value="3.5" min="0" step="0.1" />
           </div>
 
           <div class="control-group">
             <div class="group-title">DISPLAY</div>
-            <label>Image Zoom</label>
-            <div class="slider-row">
-              <input type="range" id="b-zoom" min="30" max="200" value="100" />
-              <span id="b-zoom-val" class="slider-val">100%</span>
+            <label>Image Zoom (%)</label>
+            <div class="slider-input-row">
+              <input type="range" id="b-zoom-range" min="20" max="200" value="100" />
+              <input type="number" id="b-zoom-num" value="100" min="20" max="200" step="1" />
             </div>
-            <label>Text Size</label>
-            <div class="slider-row">
-              <input type="range" id="b-fontsize" min="8" max="36" value="13" />
-              <span id="b-fontsize-val" class="slider-val">13px</span>
+            <label>Text Size (px)</label>
+            <div class="slider-input-row">
+              <input type="range" id="b-fontsize-range" min="6" max="48" value="13" />
+              <input type="number" id="b-fontsize-num" value="13" min="6" max="48" step="1" />
             </div>
             <div class="toggle-row">
               <label class="toggle-label">
@@ -280,7 +280,6 @@
 
   </main>
 
-  <!-- images.js must load first — it defines RULER_IMG, CYLINDER_IMG, BALANCE_IMG -->
   <script src="images.js"></script>
   <script src="app.js"></script>
   <script src="ruler.js"></script>
