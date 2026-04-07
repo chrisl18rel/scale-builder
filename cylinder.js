@@ -2,11 +2,10 @@
 
 const cylinder = (() => {
   const IW = 1600, IH = 872;
-  // Exact inner tube bounds from pixel scan of 1600×872 image
-  // TUBE_BOT set to 718 — where the inner glass tube meets the base pedestal
+  // Exact inner tube bounds — TUBE_TOP calibrated by user click (y=76 in original image)
   const TUBE_LEFT  = 723;
   const TUBE_RIGHT = 876;
-  const TUBE_TOP   = 47;
+  const TUBE_TOP   = 76;
   const TUBE_BOT   = 718;
 
   let img = null;
