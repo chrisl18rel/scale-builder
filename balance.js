@@ -89,6 +89,9 @@ const balance = (() => {
       getVal('b3-scale-y-range','b3-scale-y-num', 0),
     ];
 
+    // Debug: confirm scaleNumShift is being read (remove after testing)
+    // console.log('scaleNumShift:', scaleNumShift);
+
     const b1step = Math.max(0.01,  numVal('b1-step', 10));
     const b2step = Math.max(0.01,  numVal('b2-step', 100));
     const b3step = Math.max(0.001, numVal('b3-step', 1));
