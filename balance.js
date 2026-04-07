@@ -226,7 +226,7 @@ const balance = (() => {
         ctx.beginPath(); ctx.moveTo(riderX, rY + 2); ctx.lineTo(riderX, rY + rH - 2); ctx.stroke();
 
         const arrowBaseY = rY;
-        const arrowTipY  = topY - 3 * zoom;
+        const arrowTipY  = topY - 18 * zoom;  // raised 15px (was -3)
         const aw = Math.max(5, 7 * zoom);
         ctx.fillStyle = '#c00'; ctx.strokeStyle = '#c00';
         ctx.lineWidth = Math.max(1, 1.5 * zoom);
@@ -250,11 +250,19 @@ const balance = (() => {
         ctx.fillText(
           parseFloat(clampedReading.toFixed(decPlaces)),
           riderX + off.x,
-          bd.topRail * zoom - 3 * zoom - 4 + off.y
+          bd.topRail * zoom - 18 * zoom - 4 + off.y  // raised 15px as new zero (was -3)
         );
         ctx.restore();
       }
     });
+
+    // Update total mass display
+    const b1r = Math.max(beamConfigs[0].min, Math.min(beamConfigs[0].max, beamConfigs[0].reading));
+    const b2r = Math.max(beamConfigs[1].min, Math.min(beamConfigs[1].max, beamConfigs[1].reading));
+    const b3r = Math.max(beamConfigs[2].min, Math.min(beamConfigs[2].max, beamConfigs[2].reading));
+    const total = parseFloat((b1r + b2r + b3r).toFixed(8));
+    const totalEl = document.getElementById('b-total-mass');
+    if (totalEl) totalEl.textContent = total + ' g';
   }
 
   function exportPNG() {
