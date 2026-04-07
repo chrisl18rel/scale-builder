@@ -33,8 +33,11 @@ const balance = (() => {
 
   bindSliderWithInput('b-zoom-range',     'b-zoom-num',     () => draw());
   bindSliderWithInput('b-fontsize-range', 'b-fontsize-num', () => draw());
-
   bindSlider('b3-subs', 'b3-subs-val', '', () => draw());
+  // Per-beam reading label offsets
+  ['b1-lbl-x','b1-lbl-y','b2-lbl-x','b2-lbl-y','b3-lbl-x','b3-lbl-y'].forEach(base => {
+    bindSliderWithInput(base + '-range', base + '-num', () => draw());
+  });
 
   document.getElementById('b-show-reading').addEventListener('change', draw);
   document.getElementById('b-transparent').addEventListener('change', () => {
@@ -69,6 +72,12 @@ const balance = (() => {
     const fontSize    = getVal('b-fontsize-range', 'b-fontsize-num', 13);
     const showRead    = isChecked('b-show-reading');
     const transparent = isChecked('b-transparent');
+
+    const lblOffsets = [
+      { x: getVal('b1-lbl-x-range','b1-lbl-x-num',0), y: getVal('b1-lbl-y-range','b1-lbl-y-num',0) },
+      { x: getVal('b2-lbl-x-range','b2-lbl-x-num',0), y: getVal('b2-lbl-y-range','b2-lbl-y-num',0) },
+      { x: getVal('b3-lbl-x-range','b3-lbl-x-num',0), y: getVal('b3-lbl-y-range','b3-lbl-y-num',0) },
+    ];
 
     const b1step = Math.max(0.01,  numVal('b1-step', 10));
     const b2step = Math.max(0.01,  numVal('b2-step', 100));
@@ -221,13 +230,14 @@ const balance = (() => {
       if (showRead) {
         const subStep   = cfg.noSubs ? cfg.step : cfg.step / cfg.subs;
         const decPlaces = Math.max(0, -Math.floor(Math.log10(subStep)));
+        const off       = lblOffsets[idx];
         ctx.save();
         ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
         ctx.fillStyle = '#c00'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
         ctx.fillText(
           parseFloat(clampedReading.toFixed(decPlaces)),
-          riderX,
-          bd.topRail * zoom - 3 * zoom - 4
+          riderX + off.x,
+          bd.topRail * zoom - 3 * zoom - 4 + off.y
         );
         ctx.restore();
       }
