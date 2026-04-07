@@ -10,8 +10,6 @@
   --accent-hover: #5ba3f5;
   --text: #e8eaf0;
   --text-muted: #8a92a6;
-  --green: #4caf79;
-  --red: #e05c5c;
   --export: #4a90e2;
 }
 
@@ -36,9 +34,8 @@ body {
 }
 .app-logo { display: flex; align-items: center; gap: 12px; }
 .logo-icon { font-size: 28px; }
-.logo-text h1 { font-size: 18px; font-weight: 600; color: var(--text); letter-spacing: 0.3px; }
+.logo-text h1 { font-size: 18px; font-weight: 600; color: var(--text); }
 .logo-text p  { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
-
 .app-version {
   margin-left: auto;
   font-size: 11px;
@@ -49,11 +46,12 @@ body {
   border-radius: 4px;
   padding: 3px 8px;
 }
+
+/* ── Tab Nav ── */
 .tab-nav {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
-  gap: 0;
   padding: 0 16px;
 }
 .tab-btn {
@@ -71,15 +69,9 @@ body {
 
 /* ── App Body ── */
 .app-body { flex: 1; display: flex; flex-direction: column; }
-
 .tab-panel { display: none; flex: 1; }
 .tab-panel.active { display: flex; flex-direction: column; }
-
-.panel-layout {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-}
+.panel-layout { display: flex; flex: 1; min-height: 0; }
 
 /* ── Controls Panel ── */
 .controls-panel {
@@ -93,7 +85,6 @@ body {
   flex-direction: column;
   gap: 4px;
 }
-
 .control-group {
   background: var(--surface2);
   border-radius: 6px;
@@ -104,7 +95,6 @@ body {
   flex-direction: column;
   gap: 6px;
 }
-
 .group-title {
   font-size: 10px;
   font-weight: 700;
@@ -112,13 +102,11 @@ body {
   color: var(--text-muted);
   margin-bottom: 4px;
 }
-
 label {
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 2px;
 }
-
 input[type="text"],
 input[type="number"] {
   background: var(--bg);
@@ -132,9 +120,7 @@ input[type="number"] {
   transition: border-color 0.15s;
 }
 input[type="text"]:focus,
-input[type="number"]:focus {
-  border-color: var(--accent);
-}
+input[type="number"]:focus { border-color: var(--accent); }
 
 .two-col {
   display: grid;
@@ -142,7 +128,26 @@ input[type="number"]:focus {
   gap: 8px;
 }
 
-/* ── Sliders ── */
+/* ── Slider + number input linked row ── */
+.slider-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.slider-input-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.slider-input-row input[type="number"] {
+  width: 58px;
+  min-width: 58px;
+  padding: 4px 6px;
+  font-size: 12px;
+  text-align: right;
+}
+
+/* Legacy slider-row (kept for b3-subs) */
 .slider-row {
   display: flex;
   align-items: center;
@@ -179,11 +184,7 @@ input[type="range"] {
 }
 
 /* ── Button Groups ── */
-.btn-group {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
+.btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .style-btn {
   background: var(--bg);
   border: 1px solid var(--border);
@@ -195,11 +196,7 @@ input[type="range"] {
   transition: all 0.15s;
 }
 .style-btn:hover { border-color: var(--accent); color: var(--text); }
-.style-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
+.style-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 /* ── Export Button ── */
 .export-btn {
@@ -239,7 +236,7 @@ input[type="range"] {
   padding: 20px;
 }
 
-/* ── Checker Background (transparency preview) ── */
+/* ── Checker / White background ── */
 .checker-bg {
   display: inline-block;
   background-color: #fff;
@@ -256,6 +253,4 @@ input[type="range"] {
   background-image: none;
 }
 
-canvas {
-  display: block;
-}
+canvas { display: block; }
