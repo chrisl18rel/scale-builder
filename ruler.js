@@ -41,8 +41,18 @@ const ruler = (() => {
   }
 
   function getSliderVal(rangeId, numId, fallback) {
-    const v = numVal(numId, NaN);
-    return isNaN(v) ? numVal(rangeId, fallback) : v;
+    // Prefer the number input if it has a valid value, else use range slider
+    const numEl   = document.getElementById(numId);
+    const rangeEl = document.getElementById(rangeId);
+    if (numEl) {
+      const v = parseFloat(numEl.value);
+      if (!isNaN(v)) return v;
+    }
+    if (rangeEl) {
+      const v = parseFloat(rangeEl.value);
+      if (!isNaN(v)) return v;
+    }
+    return fallback;
   }
 
   function draw() {
