@@ -26,6 +26,8 @@ const ruler = (() => {
   bindSliderWithInput('r-zoom-range',     'r-zoom-num',     () => draw());
   bindSliderWithInput('r-tick-range',     'r-tick-num',     () => draw());
   bindSliderWithInput('r-fontsize-range', 'r-fontsize-num', () => draw());
+  bindSliderWithInput('r-lbl-x-range',    'r-lbl-x-num',    () => draw());
+  bindSliderWithInput('r-lbl-y-range',    'r-lbl-y-num',    () => draw());
 
   document.getElementById('r-show-reading').addEventListener('change', draw);
   document.getElementById('r-transparent').addEventListener('change', () => {
@@ -66,6 +68,8 @@ const ruler = (() => {
     const unit        = strVal('r-unit', 'cm');
     const showRead    = isChecked('r-show-reading');
     const transparent = isChecked('r-transparent');
+    const lblOffX     = getSliderVal('r-lbl-x-range', 'r-lbl-x-num', 0);
+    const lblOffY     = getSliderVal('r-lbl-y-range', 'r-lbl-y-num', 0);
 
     canvas.width  = Math.round(IW * zoom);
     canvas.height = Math.round(IH * zoom);
@@ -152,13 +156,14 @@ const ruler = (() => {
     if (showRead) {
       const lblText = reading + ' ' + unit;
       const lblW    = ctx.measureText(lblText).width + 14;
-      const lblY    = arrowTipY - ah * 1.5 - 4;
+      const lblX    = readX + lblOffX;
+      const lblY    = arrowTipY - ah * 1.5 - 4 + lblOffY;
       ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillRect(readX - lblW / 2, lblY - fontSize - 2, lblW, fontSize + 6);
+      ctx.fillRect(lblX - lblW / 2, lblY - fontSize - 2, lblW, fontSize + 6);
       ctx.fillStyle = '#c00';
-      ctx.fillText(lblText, readX, lblY);
+      ctx.fillText(lblText, lblX, lblY);
     }
     ctx.restore();
   }
