@@ -2,10 +2,11 @@
 
 const cylinder = (() => {
   const IW = 1600, IH = 872;
-  const TUBE_LEFT  = 730;
-  const TUBE_RIGHT = 869;
-  const TUBE_TOP   = 74;
-  const TUBE_BOT   = 806;
+  // Exact inner tube bounds from pixel scan of 1600×872 image
+  const TUBE_LEFT  = 723;
+  const TUBE_RIGHT = 876;
+  const TUBE_TOP   = 47;
+  const TUBE_BOT   = 833;
 
   let img = null;
 
@@ -32,8 +33,11 @@ const cylinder = (() => {
   });
 
   function getVal(rangeId, numId, fallback) {
-    const v = numVal(numId, NaN);
-    return isNaN(v) ? numVal(rangeId, fallback) : v;
+    const numEl   = document.getElementById(numId);
+    const rangeEl = document.getElementById(rangeId);
+    if (numEl)   { const v = parseFloat(numEl.value);   if (!isNaN(v)) return v; }
+    if (rangeEl) { const v = parseFloat(rangeEl.value); if (!isNaN(v)) return v; }
+    return fallback;
   }
 
   function draw() {
@@ -82,7 +86,15 @@ const cylinder = (() => {
     const fillY        = readingToY(reading);
     const clampedFillY = Math.max(tTop + 1, Math.min(tBot - 1, fillY));
 
-    // ── Liquid fill (before image) ──
+    // ── Draw cylinder image FIRST ──
+    if (img) {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
+      ctx.strokeRect(tLeft, tTop, tW, tH);
+    }
+
+    // ── Liquid fill ON TOP of image, clipped to tube interior ──
     if (clampedFillY < tBot) {
       ctx.save();
       ctx.beginPath();
@@ -90,10 +102,10 @@ const cylinder = (() => {
       ctx.clip();
 
       const grad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
-      grad.addColorStop(0,    'rgba(80,170,225,0.88)');
-      grad.addColorStop(0.18, 'rgba(130,205,245,0.70)');
-      grad.addColorStop(0.82, 'rgba(130,205,245,0.70)');
-      grad.addColorStop(1,    'rgba(70,155,215,0.88)');
+      grad.addColorStop(0,    'rgba(80,170,225,0.75)');
+      grad.addColorStop(0.18, 'rgba(130,205,245,0.60)');
+      grad.addColorStop(0.82, 'rgba(130,205,245,0.60)');
+      grad.addColorStop(1,    'rgba(70,155,215,0.75)');
 
       ctx.fillStyle = grad;
       ctx.fillRect(tLeft, clampedFillY, tW, tBot - clampedFillY);
@@ -116,17 +128,9 @@ const cylinder = (() => {
       ctx.bezierCurveTo(tCX + tW*0.05, clampedFillY, tRight - tW*0.25, clampedFillY - mDepth*0.2, tRight, clampedFillY - mDepth);
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
       ctx.fillRect(tLeft + tW*0.64, clampedFillY, tW*0.11, tBot - clampedFillY);
       ctx.restore();
-    }
-
-    // ── Cylinder image over liquid ──
-    if (img) {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    } else {
-      ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
-      ctx.strokeRect(tLeft, tTop, tW, tH);
     }
 
     // ── Ticks on RIGHT side using tickValToY ──
