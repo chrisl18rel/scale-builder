@@ -1,14 +1,18 @@
 // balance.js
 
 const balance = (() => {
-  const BEAMS = [
-    { railTopF: 0.10, railBotF: 0.28 },
-    { railTopF: 0.37, railBotF: 0.55 },
-    { railTopF: 0.64, railBotF: 0.85 },
-  ];
+  // Original image dimensions (resized to 1600×872 in images.js)
+  const IW = 1600, IH = 872;
 
-  const SCALE_LEFT_F  = 0.04;
-  const SCALE_RIGHT_F = 0.88;
+  // Beam geometry from old code (original 2816×1536), scaled to 1600×872
+  const SCALE = 1600 / 2816;
+  const BEAM_DEFS = [
+    { topRail: Math.round(170  * SCALE), botRail: Math.round(410  * SCALE) },  // ~97, ~233
+    { topRail: Math.round(600  * SCALE), botRail: Math.round(930  * SCALE) },  // ~341, ~528
+    { topRail: Math.round(1100 * SCALE), botRail: Math.round(1370 * SCALE) },  // ~625, ~779 — clamp to IH
+  ];
+  const B_LEFT_O  = Math.round(205  * SCALE);   // ~117
+  const B_RIGHT_O = Math.round(2545 * SCALE);   // ~1446
 
   let img = null;
 
@@ -33,6 +37,11 @@ const balance = (() => {
     draw();
   });
 
+  function nearMultiple(v, mult, tol) {
+    if (mult <= 0) return false;
+    return Math.abs(v - Math.round(v / mult) * mult) < tol;
+  }
+
   function draw() {
     const zoom        = numVal('b-zoom', 100) / 100;
     const fontSize    = numVal('b-fontsize', 13);
@@ -40,146 +49,147 @@ const balance = (() => {
     const transparent = isChecked('b-transparent');
 
     const beamConfigs = [
-      { min: numVal('b1-min',0), max: numVal('b1-max',100), step: Math.max(0.01,numVal('b1-step',10)),   reading: numVal('b1-reading',0),   subs: 1 },
-      { min: numVal('b2-min',0), max: numVal('b2-max',500), step: Math.max(0.01,numVal('b2-step',100)),  reading: numVal('b2-reading',100), subs: 1 },
+      { min: numVal('b1-min',0), max: numVal('b1-max',100), step: Math.max(0.01,numVal('b1-step',10)),   reading: numVal('b1-reading',0),   subs: 5 },
+      { min: numVal('b2-min',0), max: numVal('b2-max',500), step: Math.max(0.01,numVal('b2-step',100)),  reading: numVal('b2-reading',100), subs: 5 },
       { min: numVal('b3-min',0), max: numVal('b3-max',10),  step: Math.max(0.001,numVal('b3-step',1)),   reading: numVal('b3-reading',3.5), subs: Math.max(1, Math.round(numVal('b3-subs',10))) },
     ];
 
-    const srcW = img ? img.naturalWidth  : 800;
-    const srcH = img ? img.naturalHeight : 500;
+    // Canvas = full image scaled by zoom
+    canvas.width  = Math.round(IW * zoom);
+    canvas.height = Math.round(IH * zoom);
 
-    const canvasW = Math.round(srcW * zoom);
-    const canvasH = Math.round(srcH * zoom);
-
-    canvas.width  = canvasW;
-    canvas.height = canvasH;
-
-    ctx.clearRect(0, 0, canvasW, canvasH);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!transparent) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvasW, canvasH);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
     if (img) {
-      ctx.drawImage(img, 0, 0, canvasW, canvasH);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     } else {
       ctx.fillStyle = '#b0b8c4';
-      ctx.fillRect(0, 0, canvasW, canvasH);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    const scaleLeft  = canvasW * SCALE_LEFT_F;
-    const scaleRight = canvasW * SCALE_RIGHT_F;
-    const scaleWidth = scaleRight - scaleLeft;
+    const bLeft  = B_LEFT_O  * zoom;
+    const bRight = B_RIGHT_O * zoom;
+    const bWidth = bRight - bLeft;
 
-    BEAMS.forEach((beam, idx) => {
-      const cfg       = beamConfigs[idx];
-      const railTopY  = canvasH * beam.railTopF;
-      const railBotY  = canvasH * beam.railBotF;
-      const beamBodyH = railBotY - railTopY;
-      const range     = cfg.max - cfg.min;
+    BEAM_DEFS.forEach((bd, idx) => {
+      const cfg      = beamConfigs[idx];
+      const topY     = bd.topRail * zoom;
+      const botY     = bd.botRail * zoom;
+      const beamH    = botY - topY;
+      const range    = cfg.max - cfg.min;
       if (range <= 0) return;
 
-      const numSteps = Math.round(range / cfg.step);
-      const stepPx   = scaleWidth / numSteps;
-      const subPx    = cfg.subs > 1 ? stepPx / cfg.subs : 0;
+      const pxPerUnit = bWidth / range;
+      const subStep   = cfg.step / cfg.subs;
+      const decPlaces = Math.max(0, -Math.floor(Math.log10(subStep)));
+
+      const majorTickH = beamH * 0.55;
+      const medTickH   = beamH * 0.36;
+      const minTickH   = beamH * 0.22;
 
       ctx.save();
       ctx.strokeStyle  = '#111';
       ctx.fillStyle    = '#111';
-      ctx.lineWidth    = Math.max(0.8, zoom * 0.9);
+      ctx.lineWidth    = Math.max(0.8, 1.1 * zoom);
       ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
       ctx.textAlign    = 'center';
       ctx.textBaseline = 'top';
 
-      for (let i = 0; i <= numSteps; i++) {
-        const val = cfg.min + i * cfg.step;
-        if (val > cfg.max + cfg.step * 0.01) break;
-        const x   = scaleLeft + i * stepPx;
+      let tickIdx = 0;
+      let v = cfg.min;
+      while (v <= cfg.max + subStep * 0.001) {
+        const x = bLeft + (v - cfg.min) * pxPerUnit;
+        if (x > bRight + 1) break;
 
-        const majH = beamBodyH * 0.55;
+        const isMajor = nearMultiple(v, cfg.step, subStep * 0.01);
+        const isMid   = !isMajor && nearMultiple(v, cfg.step / 2, subStep * 0.01);
+        const tH      = isMajor ? majorTickH : isMid ? medTickH : minTickH;
+
         ctx.beginPath();
-        ctx.moveTo(x, railTopY);
-        ctx.lineTo(x, railTopY + majH);
+        ctx.moveTo(x, topY);
+        ctx.lineTo(x, topY + tH);
         ctx.stroke();
 
-        const decPlaces = String(cfg.step).includes('.')
-          ? String(cfg.step).split('.')[1].length : 0;
-        ctx.fillText(val.toFixed(decPlaces), x, railTopY + majH + 2);
-
-        if (cfg.subs > 1 && i < numSteps) {
-          for (let s = 1; s < cfg.subs; s++) {
-            const subX = x + s * subPx;
-            if (subX > scaleRight) break;
-            const isMid = (cfg.subs % 2 === 0) && (s === cfg.subs / 2);
-            const subH  = isMid ? beamBodyH * 0.38 : beamBodyH * 0.25;
-            ctx.beginPath();
-            ctx.moveTo(subX, railTopY);
-            ctx.lineTo(subX, railTopY + subH);
-            ctx.stroke();
-          }
+        if (isMajor) {
+          ctx.fillText(parseFloat(v.toFixed(decPlaces)), x, topY + majorTickH + 2);
         }
+
+        tickIdx++;
+        v = parseFloat((cfg.min + tickIdx * subStep).toFixed(10));
       }
       ctx.restore();
 
-      // Reading label above beam
+      // ── Rider ──
       const clampedReading = Math.max(cfg.min, Math.min(cfg.max, cfg.reading));
-      const riderX = scaleLeft + ((clampedReading - cfg.min) / range) * scaleWidth;
+      const riderX = bLeft + (clampedReading - cfg.min) * pxPerUnit;
 
-      if (showRead) {
-        const decPlaces = String(cfg.step).includes('.')
-          ? String(cfg.step).split('.')[1].length : 0;
+      if (riderX >= bLeft - 5 && riderX <= bRight + 5) {
+        const rW = Math.max(14, 22 * zoom);
+        const rH = beamH * 0.75;
+        const rY = topY + beamH * 0.12;
+
         ctx.save();
-        ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-        ctx.fillStyle    = '#c82020';
-        ctx.textAlign    = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(clampedReading.toFixed(decPlaces), riderX, railTopY - fontSize * 0.5 - 6);
+        const rg = ctx.createLinearGradient(riderX - rW/2, 0, riderX + rW/2, 0);
+        rg.addColorStop(0,   '#888');
+        rg.addColorStop(0.3, '#ddd');
+        rg.addColorStop(0.7, '#ddd');
+        rg.addColorStop(1,   '#777');
+        ctx.fillStyle   = rg;
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth   = Math.max(0.8, 1.2 * zoom);
+        ctx.beginPath();
+        ctx.roundRect(riderX - rW/2, rY, rW, rH, 2 * zoom);
+        ctx.fill();
+        ctx.stroke();
+
+        // Center notch
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth   = Math.max(0.8, 1.5 * zoom);
+        ctx.beginPath();
+        ctx.moveTo(riderX, rY + 2);
+        ctx.lineTo(riderX, rY + rH - 2);
+        ctx.stroke();
+
+        // Downward arrow from rider bottom to just above top rail
+        const arrowBaseY = rY;
+        const arrowTipY  = topY - 3 * zoom;
+        const aw = Math.max(5, 7 * zoom);
+        ctx.fillStyle   = '#c00';
+        ctx.strokeStyle = '#c00';
+        ctx.lineWidth   = Math.max(1, 1.5 * zoom);
+        ctx.beginPath();
+        ctx.moveTo(riderX, arrowBaseY);
+        ctx.lineTo(riderX, arrowTipY + aw);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(riderX - aw, arrowTipY + aw);
+        ctx.lineTo(riderX + aw, arrowTipY + aw);
+        ctx.lineTo(riderX,      arrowTipY + aw * 2);
+        ctx.closePath();
+        ctx.fill();
+
         ctx.restore();
       }
 
-      drawRider(ctx, riderX, railTopY, railBotY, zoom);
+      // Reading label above rider
+      if (showRead) {
+        ctx.save();
+        ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+        ctx.fillStyle    = '#c00';
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(
+          parseFloat(clampedReading.toFixed(decPlaces)),
+          riderX,
+          topY - 3 * zoom - fontSize * 0.5 - 4
+        );
+        ctx.restore();
+      }
     });
-  }
-
-  function drawRider(ctx, x, railTopY, railBotY, zoom) {
-    const beamH   = railBotY - railTopY;
-    const riderHW = Math.max(5, 7 * zoom);
-    const arrowHW = Math.max(3, 4 * zoom);
-
-    const arrowTipY  = railTopY;
-    const arrowBaseY = arrowTipY - arrowHW * 1.8;
-    const riderBotY  = arrowBaseY;
-    const riderTopY  = riderBotY - beamH * 0.45;
-
-    ctx.save();
-    ctx.fillStyle   = 'rgba(50, 55, 65, 0.88)';
-    ctx.strokeStyle = '#1a1a1a';
-    ctx.lineWidth   = Math.max(0.8, zoom * 0.7);
-    ctx.beginPath();
-    ctx.moveTo(x - riderHW,       riderTopY);
-    ctx.lineTo(x + riderHW,       riderTopY);
-    ctx.lineTo(x + riderHW * 0.55, riderBotY);
-    ctx.lineTo(x - riderHW * 0.55, riderBotY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.strokeStyle = 'rgba(200,200,200,0.7)';
-    ctx.lineWidth   = Math.max(0.7, zoom * 0.5);
-    ctx.beginPath();
-    ctx.moveTo(x, riderTopY + 2);
-    ctx.lineTo(x, riderBotY - 2);
-    ctx.stroke();
-
-    ctx.fillStyle = '#e03030';
-    ctx.beginPath();
-    ctx.moveTo(x,           arrowTipY);
-    ctx.lineTo(x - arrowHW, arrowBaseY);
-    ctx.lineTo(x + arrowHW, arrowBaseY);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.restore();
   }
 
   function exportPNG() {
