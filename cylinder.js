@@ -2,11 +2,13 @@
 
 const cylinder = (() => {
   const IW = 1600, IH = 872;
-  // Exact inner tube bounds — TUBE_TOP calibrated by user click (y=76 in original image)
+  // Tube bounds calibrated by user clicks on the actual image
+  // TUBE_TOP=76: top of scale (max capacity tick)
+  // TUBE_BOT=765: bottom of scale (0 mL, bottom of liquid)
   const TUBE_LEFT  = 723;
   const TUBE_RIGHT = 876;
   const TUBE_TOP   = 76;
-  const TUBE_BOT   = 718;
+  const TUBE_BOT   = 765;
 
   let img = null;
 
@@ -75,19 +77,14 @@ const cylinder = (() => {
     const tH     = tBot   - tTop;
     const tCX    = (tLeft + tRight) / 2;
 
-    // ── Two separate Y mappings ──
-    // 1. Liquid fill Y: always maps to actual tube pixel height (so liquid is always visible)
-    function readingToY(v) {
-      const frac = Math.max(0, Math.min(1, (v - minV) / (maxV - minV)));
-      return tBot - frac * tH;
-    }
-
-    // 2. Tick Y: driven by pxPerMajor (scale stretch slider), bottom of tube = minV
+    // ── Single Y mapping ──
+    // Both liquid fill and ticks use this. tBot = 0 mL, values increase upward.
+    // pxPerMajor drives spacing; at default settings this fills the tube nicely.
     function tickValToY(v) {
       return tBot - (v - minV) * (pxPerMajor / major);
     }
 
-    const fillY        = readingToY(reading);
+    const fillY        = tickValToY(reading);
     const clampedFillY = Math.max(tTop + 1, Math.min(tBot - 1, fillY));
 
     // ── Draw cylinder image FIRST ──
@@ -170,18 +167,14 @@ const cylinder = (() => {
     }
     ctx.restore();
 
-    // ── Dashed reading line: positioned by tickValToY so it aligns with the scale ──
-    // clampedFillY is still used for the liquid visual; the dashed line uses the tick system
-    const tickReadY       = tickValToY(reading);
-    const clampedTickReadY = Math.max(tTop + 1, Math.min(tBot - 1, tickReadY));
-
+    // ── Dashed reading line aligned with tick scale ──
     ctx.save();
     ctx.strokeStyle = '#c00';
     ctx.lineWidth   = Math.max(1.5, 2 * zoom);
     ctx.setLineDash([5 * zoom, 3 * zoom]);
     ctx.beginPath();
-    ctx.moveTo(tLeft - 15 * zoom, clampedTickReadY);
-    ctx.lineTo(tRight + tickMajW + 5, clampedTickReadY);
+    ctx.moveTo(tLeft - 15 * zoom, clampedFillY);
+    ctx.lineTo(tRight + tickMajW + 5, clampedFillY);
     ctx.stroke();
     ctx.setLineDash([]);
 
@@ -189,7 +182,7 @@ const cylinder = (() => {
       const decP    = Math.max(0, -Math.floor(Math.log10(subVal)));
       const lblText = reading.toFixed(decP) + ' ' + unit;
       const lblX    = tRight + tickMajW + 8 + lblOffX;
-      const lblBaseY = clampedTickReadY + lblOffY;
+      const lblBaseY = clampedFillY + lblOffY;
       const lblW    = ctx.measureText(lblText).width + 14;
       ctx.fillStyle = 'rgba(255,255,255,0.92)';
       ctx.fillRect(lblX - 4, lblBaseY - fontSize - 2, lblW, fontSize + 8);
