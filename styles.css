@@ -164,18 +164,26 @@ input[type="number"]:focus { border-color: var(--accent); }
 }
 
 /* ── Slider color categories ── */
-.slider-zoom   .slider-input-row input[type="range"] { accent-color: var(--slider-zoom);   }
-.slider-tick   .slider-input-row input[type="range"] { accent-color: var(--slider-tick);   }
-.slider-font   .slider-input-row input[type="range"] { accent-color: var(--slider-font);   }
-.slider-offset .slider-input-row input[type="range"] { accent-color: var(--slider-offset); }
-.slider-shift  .slider-input-row input[type="range"] { accent-color: var(--slider-shift);  }
+.slider-zoom      .slider-input-row input[type="range"] { accent-color: var(--slider-zoom);   }
+.slider-tick      .slider-input-row input[type="range"] { accent-color: var(--slider-tick);   }
+.slider-font      .slider-input-row input[type="range"] { accent-color: var(--slider-font);   }
+.slider-offset    .slider-input-row input[type="range"] { accent-color: var(--slider-offset); }
+.slider-shift     .slider-input-row input[type="range"] { accent-color: var(--slider-shift);  }
+/* Per-beam label offset colors */
+.slider-offset-b1 .slider-input-row input[type="range"] { accent-color: #f4a641; }
+.slider-offset-b2 .slider-input-row input[type="range"] { accent-color: #e066c8; }
+.slider-offset-b3 .slider-input-row input[type="range"] { accent-color: #26c6da; }
 
 /* ── Display card section divider ── */
 .display-divider {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--border);
   border: none;
-  border-top: 1px solid var(--border);
-  margin: 4px 0 2px;
-  opacity: 0.7;
+  margin: 6px 0 4px;
+  opacity: 0.8;
+  flex-shrink: 0;
 }
 
 /* ── Legacy slider-row (b3-subs) ── */
