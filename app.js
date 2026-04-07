@@ -27,13 +27,13 @@ function bindSlider(sliderId, labelId, suffix, cb) {
   slider.addEventListener('input', update);
 }
 
-function loadImage(src) {
+// Load an image from a data URI string (base64) into an HTMLImageElement
+function loadImageFromDataURI(dataURI) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.onload  = () => resolve(img);
-    img.onerror = () => reject(new Error('Failed to load ' + src));
-    img.src = src + '?v=' + Date.now();
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = dataURI;
   });
 }
 
@@ -64,7 +64,7 @@ function updateBgClass(wrapperId, transparent) {
   }
 }
 
-// Wire up beam 3 subs slider label (the slider itself is read by balance.js via numVal)
+// Wire up beam 3 subs slider label
 const b3subsSlider = document.getElementById('b3-subs');
 const b3subsLabel  = document.getElementById('b3-subs-val');
 if (b3subsSlider && b3subsLabel) {
