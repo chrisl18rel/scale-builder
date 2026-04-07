@@ -1,17 +1,14 @@
 // ruler.js
 
 const ruler = (() => {
-  // Original image dimensions (blank_ruler.png resized to 1600×872 in images.js)
+  // Image dimensions in images.js (resized to 1600×872)
   const IW = 1600, IH = 872;
 
-  // Ruler body bounds in original image pixels
-  // Ruler body: rows 605-947, cols 210-2620 — scaled proportionally to 1600×872
-  // Original source was 2816×1536, scale factors: 1600/2816=0.568, 872/1536=0.568
-  const SCALE = 1600 / 2816;
-  const RULER_LEFT  = Math.round(210  * SCALE);   // ~119
-  const RULER_RIGHT = Math.round(2620 * SCALE);   // ~1488
-  const RULER_TOP   = Math.round(605  * SCALE);   // ~344
-  const RULER_BOT   = Math.round(947  * SCALE);   // ~538
+  // Ruler body bounds in 1600×872 image (scaled from original 2816×1536)
+  const RULER_LEFT  = 119;
+  const RULER_RIGHT = 1489;
+  const RULER_TOP   = 343;
+  const RULER_BOT   = 538;
 
   let img        = null;
   let arrowStyle = 'pointer';
@@ -43,14 +40,9 @@ const ruler = (() => {
     draw();
   }
 
-  function nearMultiple(v, mult, tol) {
-    if (mult <= 0) return false;
-    return Math.abs(v - Math.round(v / mult) * mult) < tol;
-  }
-
   function draw() {
     const zoom        = numVal('r-zoom', 100) / 100;
-    const pxPerMajor  = numVal('r-tick', 120);      // canvas px between major ticks (independent of zoom)
+    const pxPerMajor  = numVal('r-tick', 120);
     const major       = Math.max(0.001, numVal('r-major', 1));
     const subs        = Math.max(1, Math.round(numVal('r-subs', 10)));
     const startVal    = numVal('r-start', 0);
@@ -70,7 +62,6 @@ const ruler = (() => {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Draw image at full zoomed size
     if (img) {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     } else {
@@ -85,9 +76,8 @@ const ruler = (() => {
     const rBot   = RULER_BOT   * zoom;
     const rH     = rBot - rTop;
 
-    // Tick spacing is pxPerMajor pixels (not scaled by zoom — this is the independent control)
-    const pxPerSub = pxPerMajor / subs;
-    const subVal   = major / subs;
+    const pxPerSub  = pxPerMajor / subs;
+    const subVal    = major / subs;
     const decPlaces = Math.max(0, -Math.floor(Math.log10(subVal)));
 
     const majorH = rH * 0.55;
@@ -95,11 +85,11 @@ const ruler = (() => {
     const minH   = rH * 0.22;
 
     ctx.save();
-    ctx.strokeStyle = '#111';
-    ctx.fillStyle   = '#111';
-    ctx.lineWidth   = Math.max(0.8, 1.2 * zoom);
-    ctx.font        = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-    ctx.textAlign   = 'center';
+    ctx.strokeStyle  = '#111';
+    ctx.fillStyle    = '#111';
+    ctx.lineWidth    = Math.max(0.8, 1.2 * zoom);
+    ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+    ctx.textAlign    = 'center';
     ctx.textBaseline = 'top';
 
     let tickIdx = 0;
@@ -125,7 +115,7 @@ const ruler = (() => {
     }
     ctx.restore();
 
-    // ── Arrow + reading ──
+    // Arrow + reading
     const rulerWidthPx = rRight - rLeft;
     const numMajorFit  = rulerWidthPx / pxPerMajor;
     const readFrac     = (reading - startVal) / (major * numMajorFit);
@@ -141,25 +131,24 @@ const ruler = (() => {
     ctx.lineWidth   = Math.max(1.5, 2 * zoom);
 
     if (arrowStyle === 'line') {
-      // Vertical line from arrow tip down through full ruler body
+      // Vertical line from tip downward through the full ruler body
       ctx.beginPath();
       ctx.moveTo(readX, arrowTipY + ah);
       ctx.lineTo(readX, rBot);
       ctx.stroke();
-      // Short stem above arrowhead
+      // Stem above arrowhead
       ctx.beginPath();
       ctx.moveTo(readX, arrowTipY - ah * 1.5);
       ctx.lineTo(readX, arrowTipY);
       ctx.stroke();
     } else {
-      // Pointer only: stem above arrowhead
       ctx.beginPath();
       ctx.moveTo(readX, arrowTipY - ah * 2);
       ctx.lineTo(readX, arrowTipY);
       ctx.stroke();
     }
 
-    // Arrowhead pointing DOWN (tip at arrowTipY + ah)
+    // Arrowhead pointing down
     ctx.beginPath();
     ctx.moveTo(readX - aw, arrowTipY);
     ctx.lineTo(readX + aw, arrowTipY);
@@ -167,17 +156,15 @@ const ruler = (() => {
     ctx.closePath();
     ctx.fill();
 
-    // Reading label
     if (showRead) {
-      const lfs = fontSize;
-      ctx.font = `bold ${lfs}px 'Segoe UI', sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
       const lblText = reading + ' ' + unit;
-      const lblW = ctx.measureText(lblText).width + 14;
-      const lblY = arrowTipY - ah * 1.5 - 4;
+      const lblW    = ctx.measureText(lblText).width + 14;
+      const lblY    = arrowTipY - ah * 1.5 - 4;
+      ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'bottom';
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillRect(readX - lblW / 2, lblY - lfs - 2, lblW, lfs + 6);
+      ctx.fillRect(readX - lblW / 2, lblY - fontSize - 2, lblW, fontSize + 6);
       ctx.fillStyle = '#c00';
       ctx.fillText(lblText, readX, lblY);
     }
