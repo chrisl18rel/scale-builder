@@ -1,10 +1,7 @@
 // cylinder.js
 
 const cylinder = (() => {
-  // Image dimensions in images.js (1600×872)
   const IW = 1600, IH = 872;
-
-  // Cylinder inner tube bounds in 1600×872 image (scaled from original 2816×1536)
   const TUBE_LEFT  = 730;
   const TUBE_RIGHT = 869;
   const TUBE_TOP   = 74;
@@ -23,29 +20,35 @@ const cylinder = (() => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', draw);
   });
-  bindSlider('c-zoom',     'c-zoom-val',     '%',  () => draw());
-  bindSlider('c-tick',     'c-tick-val',     'px', () => draw());
-  bindSlider('c-fontsize', 'c-fontsize-val', 'px', () => draw());
+
+  bindSliderWithInput('c-zoom-range',     'c-zoom-num',     () => draw());
+  bindSliderWithInput('c-tick-range',     'c-tick-num',     () => draw());
+  bindSliderWithInput('c-fontsize-range', 'c-fontsize-num', () => draw());
+
   document.getElementById('c-show-reading').addEventListener('change', draw);
   document.getElementById('c-transparent').addEventListener('change', () => {
     updateBgClass('c-checker', isChecked('c-transparent'));
     draw();
   });
 
+  function getVal(rangeId, numId, fallback) {
+    const v = numVal(numId, NaN);
+    return isNaN(v) ? numVal(rangeId, fallback) : v;
+  }
+
   function draw() {
-    const zoom        = numVal('c-zoom', 100) / 100;
-    const pxPerMajor  = numVal('c-tick', 50);
-    const maxV        = Math.max(1, numVal('c-max', 100));
-    const minV        = 0;
-    const major       = Math.max(0.01, numVal('c-major', 10));
-    const subs        = Math.max(1, Math.round(numVal('c-subs', 5)));
-    const reading     = Math.min(maxV, Math.max(minV, numVal('c-reading', 42)));
-    const unit        = strVal('c-unit', 'mL');
-    const fontSize    = numVal('c-fontsize', 14);
-    const showRead    = isChecked('c-show-reading');
+    const zoom       = getVal('c-zoom-range',     'c-zoom-num',     100) / 100;
+    const pxPerMajor = getVal('c-tick-range',     'c-tick-num',     50);
+    const fontSize   = getVal('c-fontsize-range', 'c-fontsize-num', 14);
+    const maxV       = Math.max(1, numVal('c-max', 100));
+    const minV       = 0;
+    const major      = Math.max(0.01, numVal('c-major', 10));
+    const subs       = Math.max(1, Math.round(numVal('c-subs', 5)));
+    const reading    = Math.min(maxV, Math.max(0, numVal('c-reading', 42)));
+    const unit       = strVal('c-unit', 'mL');
+    const showRead   = isChecked('c-show-reading');
     const transparent = isChecked('c-transparent');
 
-    // Canvas = full image scaled by zoom
     canvas.width  = Math.round(IW * zoom);
     canvas.height = Math.round(IH * zoom);
 
@@ -55,98 +58,81 @@ const cylinder = (() => {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Tube bounds scaled by zoom
+    // Tube pixel bounds
     const tLeft  = TUBE_LEFT  * zoom;
     const tRight = TUBE_RIGHT * zoom;
     const tTop   = TUBE_TOP   * zoom;
     const tBot   = TUBE_BOT   * zoom;
     const tW     = tRight - tLeft;
-    const tH     = tBot - tTop;
+    const tH     = tBot   - tTop;
     const tCX    = (tLeft + tRight) / 2;
 
-    // Value → Y: pxPerMajor px per major division, values increase upward
-    function valToY(v) {
+    // ── Two separate Y mappings ──
+    // 1. Liquid fill Y: always maps to actual tube pixel height (so liquid is always visible)
+    function readingToY(v) {
+      const frac = Math.max(0, Math.min(1, (v - minV) / (maxV - minV)));
+      return tBot - frac * tH;
+    }
+
+    // 2. Tick Y: driven by pxPerMajor (scale stretch slider), bottom of tube = minV
+    function tickValToY(v) {
       return tBot - (v - minV) * (pxPerMajor / major);
     }
 
-    const fillY        = valToY(reading);
-    const clampedFillY = Math.max(tTop, Math.min(tBot, fillY));
+    const fillY        = readingToY(reading);
+    const clampedFillY = Math.max(tTop + 1, Math.min(tBot - 1, fillY));
 
-    // ── Liquid fill (drawn BEFORE image so glass overlays it) ──
+    // ── Liquid fill (before image) ──
     if (clampedFillY < tBot) {
       ctx.save();
-      // Clip to tube interior
       ctx.beginPath();
       ctx.rect(tLeft, tTop, tW, tH);
       ctx.clip();
 
-      // Liquid body gradient
       const grad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
       grad.addColorStop(0,    'rgba(80,170,225,0.88)');
       grad.addColorStop(0.18, 'rgba(130,205,245,0.70)');
       grad.addColorStop(0.82, 'rgba(130,205,245,0.70)');
       grad.addColorStop(1,    'rgba(70,155,215,0.88)');
+
       ctx.fillStyle = grad;
       ctx.fillRect(tLeft, clampedFillY, tW, tBot - clampedFillY);
 
-      // Concave meniscus: edges curve UP, center stays at clampedFillY
+      // Concave meniscus: edges UP, center at clampedFillY
       const mDepth = tW * 0.10;
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.moveTo(tLeft, clampedFillY - mDepth);
-      ctx.bezierCurveTo(
-        tLeft + tW * 0.25, clampedFillY - mDepth * 0.2,
-        tCX   - tW * 0.05, clampedFillY,
-        tCX,               clampedFillY
-      );
-      ctx.bezierCurveTo(
-        tCX   + tW * 0.05, clampedFillY,
-        tRight - tW * 0.25, clampedFillY - mDepth * 0.2,
-        tRight, clampedFillY - mDepth
-      );
-      ctx.lineTo(tRight, tBot);
-      ctx.lineTo(tLeft,  tBot);
-      ctx.closePath();
-      ctx.fill();
+      ctx.bezierCurveTo(tLeft + tW*0.25, clampedFillY - mDepth*0.2, tCX - tW*0.05, clampedFillY, tCX, clampedFillY);
+      ctx.bezierCurveTo(tCX + tW*0.05, clampedFillY, tRight - tW*0.25, clampedFillY - mDepth*0.2, tRight, clampedFillY - mDepth);
+      ctx.lineTo(tRight, tBot); ctx.lineTo(tLeft, tBot); ctx.closePath(); ctx.fill();
 
       // Meniscus outline
       ctx.strokeStyle = 'rgba(20,110,175,0.95)';
       ctx.lineWidth   = Math.max(1.5, 2 * zoom);
       ctx.beginPath();
       ctx.moveTo(tLeft, clampedFillY - mDepth);
-      ctx.bezierCurveTo(
-        tLeft + tW * 0.25, clampedFillY - mDepth * 0.2,
-        tCX   - tW * 0.05, clampedFillY,
-        tCX,               clampedFillY
-      );
-      ctx.bezierCurveTo(
-        tCX   + tW * 0.05, clampedFillY,
-        tRight - tW * 0.25, clampedFillY - mDepth * 0.2,
-        tRight, clampedFillY - mDepth
-      );
+      ctx.bezierCurveTo(tLeft + tW*0.25, clampedFillY - mDepth*0.2, tCX - tW*0.05, clampedFillY, tCX, clampedFillY);
+      ctx.bezierCurveTo(tCX + tW*0.05, clampedFillY, tRight - tW*0.25, clampedFillY - mDepth*0.2, tRight, clampedFillY - mDepth);
       ctx.stroke();
 
-      // Glass glare
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
-      ctx.fillRect(tLeft + tW * 0.64, clampedFillY, tW * 0.11, tBot - clampedFillY);
-
+      ctx.fillRect(tLeft + tW*0.64, clampedFillY, tW*0.11, tBot - clampedFillY);
       ctx.restore();
     }
 
-    // ── Draw cylinder image over liquid ──
+    // ── Cylinder image over liquid ──
     if (img) {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     } else {
-      ctx.strokeStyle = '#999';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
       ctx.strokeRect(tLeft, tTop, tW, tH);
     }
 
-    // ── Tick marks on RIGHT side of tube ──
+    // ── Ticks on RIGHT side using tickValToY ──
     const tickMajW = tW * 0.60;
     const tickMedW = tW * 0.40;
     const tickMinW = tW * 0.25;
-
     const subVal    = major / subs;
     const decPlaces = Math.max(0, -Math.floor(Math.log10(subVal)));
 
@@ -160,24 +146,15 @@ const cylinder = (() => {
 
     let tickIdx = 0;
     let v = minV;
-    while (valToY(v) >= tTop - 2) {
-      const y = valToY(v);
+    while (tickValToY(v) >= tTop - 2) {
+      const y = tickValToY(v);
       if (y <= tBot + 2) {
         const isMajor = (tickIdx % subs === 0);
         const isMid   = !isMajor && subs >= 4 && (tickIdx % Math.floor(subs / 2) === 0);
         const tw      = isMajor ? tickMajW : isMid ? tickMedW : tickMinW;
-
-        ctx.beginPath();
-        ctx.moveTo(tRight, y);
-        ctx.lineTo(tRight + tw, y);
-        ctx.stroke();
-
+        ctx.beginPath(); ctx.moveTo(tRight, y); ctx.lineTo(tRight + tw, y); ctx.stroke();
         if (isMajor) {
-          ctx.fillText(
-            parseFloat(v.toFixed(decPlaces)) + ' ' + unit,
-            tRight + tickMajW + 5,
-            y
-          );
+          ctx.fillText(parseFloat(v.toFixed(decPlaces)) + ' ' + unit, tRight + tickMajW + 5, y);
         }
       }
       tickIdx++;
@@ -185,33 +162,31 @@ const cylinder = (() => {
     }
     ctx.restore();
 
-    // ── Dashed reading line + label ──
-    if (fillY >= tTop - 30 && fillY <= tBot + 10) {
-      ctx.save();
-      ctx.strokeStyle = '#c00';
-      ctx.lineWidth   = Math.max(1.5, 2 * zoom);
-      ctx.setLineDash([5 * zoom, 3 * zoom]);
-      ctx.beginPath();
-      ctx.moveTo(tLeft - 15 * zoom, clampedFillY);
-      ctx.lineTo(tRight + tickMajW + 5, clampedFillY);
-      ctx.stroke();
-      ctx.setLineDash([]);
+    // ── Dashed reading line at liquid fill Y ──
+    ctx.save();
+    ctx.strokeStyle = '#c00';
+    ctx.lineWidth   = Math.max(1.5, 2 * zoom);
+    ctx.setLineDash([5 * zoom, 3 * zoom]);
+    ctx.beginPath();
+    ctx.moveTo(tLeft - 15 * zoom, clampedFillY);
+    ctx.lineTo(tRight + tickMajW + 5, clampedFillY);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-      if (showRead) {
-        const decP    = Math.max(0, -Math.floor(Math.log10(subVal)));
-        const lblText = reading.toFixed(decP) + ' ' + unit;
-        const lblX    = tRight + tickMajW + 8;
-        const lblW    = ctx.measureText(lblText).width + 14;
-        ctx.fillStyle = 'rgba(255,255,255,0.92)';
-        ctx.fillRect(lblX - 4, clampedFillY - fontSize - 2, lblW, fontSize + 8);
-        ctx.fillStyle    = '#c00';
-        ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-        ctx.textAlign    = 'left';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(lblText, lblX, clampedFillY + 2);
-      }
-      ctx.restore();
+    if (showRead) {
+      const decP    = Math.max(0, -Math.floor(Math.log10(subVal)));
+      const lblText = reading.toFixed(decP) + ' ' + unit;
+      const lblX    = tRight + tickMajW + 8;
+      const lblW    = ctx.measureText(lblText).width + 14;
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.fillRect(lblX - 4, clampedFillY - fontSize - 2, lblW, fontSize + 8);
+      ctx.fillStyle    = '#c00';
+      ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+      ctx.textAlign    = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(lblText, lblX, clampedFillY + 2);
     }
+    ctx.restore();
   }
 
   function exportPNG() {
