@@ -74,12 +74,13 @@ const ruler = (() => {
     // Canvas is cropped to just the ruler body + padding for label above
     // Source crop: ruler body rows RULER_TOP–RULER_BOT, cols RULER_LEFT–RULER_RIGHT
     const labelPad = Math.round(fontSize * 4 + 20);  // space above ruler for arrow + label
-    const botPad   = 10;
+    const botPad   = 16;
+    const sidePad  = 24;  // left + right breathing room
 
     const rulerBodyW = Math.round((RULER_RIGHT - RULER_LEFT) * zoom);
     const rulerBodyH = Math.round((RULER_BOT   - RULER_TOP)  * zoom);
 
-    canvas.width  = rulerBodyW;
+    canvas.width  = rulerBodyW + sidePad * 2;
     canvas.height = rulerBodyH + labelPad + botPad;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -88,21 +89,21 @@ const ruler = (() => {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Draw only the ruler body portion of the source image
+    // Draw only the ruler body portion of the source image, offset by sidePad
     if (img) {
       ctx.drawImage(
         img,
         RULER_LEFT, RULER_TOP, RULER_RIGHT - RULER_LEFT, RULER_BOT - RULER_TOP,
-        0, labelPad, rulerBodyW, rulerBodyH
+        sidePad, labelPad, rulerBodyW, rulerBodyH
       );
     } else {
       ctx.fillStyle = '#c8a04a';
-      ctx.fillRect(0, labelPad, rulerBodyW, rulerBodyH);
+      ctx.fillRect(sidePad, labelPad, rulerBodyW, rulerBodyH);
     }
 
-    // Ruler geometry now starts at x=0, y=labelPad
-    const rLeft  = 0;
-    const rRight = rulerBodyW;
+    // Ruler geometry starts at x=sidePad, y=labelPad
+    const rLeft  = sidePad;
+    const rRight = sidePad + rulerBodyW;
     const rTop   = labelPad;
     const rBot   = labelPad + rulerBodyH;
     const rH     = rulerBodyH;
