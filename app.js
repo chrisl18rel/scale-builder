@@ -16,18 +16,42 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // ── Shared Utilities ────────────────────────────────────
 
+/**
+ * Bind a range slider and a linked number input so they stay in sync.
+ * Both fire the callback when either changes.
+ */
+function bindSliderWithInput(sliderId, inputId, cb) {
+  const slider = document.getElementById(sliderId);
+  const input  = document.getElementById(inputId);
+  if (!slider || !input) return;
+
+  slider.addEventListener('input', () => {
+    input.value = slider.value;
+    cb(Number(slider.value));
+  });
+  input.addEventListener('input', () => {
+    let v = parseFloat(input.value);
+    if (isNaN(v)) return;
+    v = Math.max(Number(slider.min), Math.min(Number(slider.max), v));
+    slider.value = v;
+    input.value  = v;
+    cb(v);
+  });
+}
+
+/**
+ * Legacy bindSlider for cases where we just have a label span (b3-subs).
+ */
 function bindSlider(sliderId, labelId, suffix, cb) {
   const slider = document.getElementById(sliderId);
   const label  = document.getElementById(labelId);
   if (!slider || !label) return;
-  const update = () => {
+  slider.addEventListener('input', () => {
     label.textContent = slider.value + suffix;
     cb(Number(slider.value));
-  };
-  slider.addEventListener('input', update);
+  });
 }
 
-// Load an image from a data URI string (base64) into an HTMLImageElement
 function loadImageFromDataURI(dataURI) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -64,7 +88,7 @@ function updateBgClass(wrapperId, transparent) {
   }
 }
 
-// Wire up beam 3 subs slider label
+// Wire beam 3 subs slider label
 const b3subsSlider = document.getElementById('b3-subs');
 const b3subsLabel  = document.getElementById('b3-subs-val');
 if (b3subsSlider && b3subsLabel) {
@@ -72,3 +96,14 @@ if (b3subsSlider && b3subsLabel) {
     b3subsLabel.textContent = b3subsSlider.value;
   });
 }
+
+// Beam 1/2 step → reading step sync
+['b1','b2'].forEach(prefix => {
+  const stepEl    = document.getElementById(`${prefix}-step`);
+  const readingEl = document.getElementById(`${prefix}-reading`);
+  if (stepEl && readingEl) {
+    stepEl.addEventListener('input', () => {
+      readingEl.step = stepEl.value;
+    });
+  }
+});
