@@ -16,7 +16,7 @@
         <p>Generate measurement instrument images for science class</p>
       </div>
     </div>
-    <div class="app-version">v2.7</div>
+    <div class="app-version">v2.8</div>
   </header>
 
   <nav class="tab-nav">
@@ -91,7 +91,7 @@
               </div>
             </div>
 
-            <hr class="display-divider" />
+            <div class="display-divider"></div>
 
             <div class="toggle-row">
               <label class="toggle-label">
@@ -198,7 +198,7 @@
               </div>
             </div>
 
-            <hr class="display-divider" />
+            <div class="display-divider"></div>
 
             <div class="toggle-row">
               <label class="toggle-label">
@@ -308,7 +308,7 @@
               </div>
             </div>
 
-            <hr class="display-divider" />
+            <div class="display-divider"></div>
 
             <div class="toggle-row">
               <label class="toggle-label">
@@ -325,8 +325,8 @@
               </div>
               <label>Beam 1 Label Offset Y</label>
               <div class="slider-input-row">
-                <input type="range" id="b1-lbl-y-range" min="-150" max="150" value="-14" />
-                <input type="number" id="b1-lbl-y-num" value="-14" min="-150" max="150" step="1" />
+                <input type="range" id="b1-lbl-y-range" min="-150" max="150" value="0" />
+                <input type="number" id="b1-lbl-y-num" value="0" min="-150" max="150" step="1" />
               </div>
             </div>
 
@@ -356,7 +356,7 @@
               </div>
             </div>
 
-            <hr class="display-divider" />
+            <div class="display-divider"></div>
 
             <div class="slider-shift">
               <label>Beam 1 Scale Numbers Y Shift</label>
@@ -376,6 +376,13 @@
               </div>
             </div>
 
+          </div>
+
+          <div class="control-group total-mass-card">
+            <div class="group-title">TOTAL MASS</div>
+            <div class="total-mass-display">
+              <span id="b-total-mass">— g</span>
+            </div>
           </div>
 
           <div class="control-group">
