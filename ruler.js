@@ -1,13 +1,17 @@
 // ruler.js
 
 const ruler = (() => {
-  // Calibrated fractions from pixel measurements (canvas 1240×249)
-  // Scale left x=20/1240=0.016, right x=1220/1240=0.984
-  // Ticks start near the top of the ruler face
-  const SCALE_LEFT_PAD_F  = 0.016;
-  const SCALE_RIGHT_PAD_F = 0.016;
-  const TICK_TOP_F        = 0.08;
-  const TICK_AREA_H_F     = 0.55;
+  // Original image dimensions (blank_ruler.png resized to 1600×872 in images.js)
+  const IW = 1600, IH = 872;
+
+  // Ruler body bounds in original image pixels
+  // Ruler body: rows 605-947, cols 210-2620 — scaled proportionally to 1600×872
+  // Original source was 2816×1536, scale factors: 1600/2816=0.568, 872/1536=0.568
+  const SCALE = 1600 / 2816;
+  const RULER_LEFT  = Math.round(210  * SCALE);   // ~119
+  const RULER_RIGHT = Math.round(2620 * SCALE);   // ~1488
+  const RULER_TOP   = Math.round(605  * SCALE);   // ~344
+  const RULER_BOT   = Math.round(947  * SCALE);   // ~538
 
   let img        = null;
   let arrowStyle = 'pointer';
@@ -15,7 +19,6 @@ const ruler = (() => {
   const canvas = document.getElementById('ruler-canvas');
   const ctx    = canvas.getContext('2d');
 
-  // Load from embedded base64 — no network request, no CORS issues
   loadImageFromDataURI(RULER_IMG)
     .then(loaded => { img = loaded; draw(); })
     .catch(err => { console.error('Ruler image failed:', err); draw(); });
@@ -40,9 +43,14 @@ const ruler = (() => {
     draw();
   }
 
+  function nearMultiple(v, mult, tol) {
+    if (mult <= 0) return false;
+    return Math.abs(v - Math.round(v / mult) * mult) < tol;
+  }
+
   function draw() {
     const zoom        = numVal('r-zoom', 100) / 100;
-    const tickPxMaj   = numVal('r-tick', 120);   // pixels between major divisions (tick spacing)
+    const pxPerMajor  = numVal('r-tick', 120);      // canvas px between major ticks (independent of zoom)
     const major       = Math.max(0.001, numVal('r-major', 1));
     const subs        = Math.max(1, Math.round(numVal('r-subs', 10)));
     const startVal    = numVal('r-start', 0);
@@ -52,146 +60,126 @@ const ruler = (() => {
     const showRead    = isChecked('r-show-reading');
     const transparent = isChecked('r-transparent');
 
-    // ── How many major divisions to show ──
-    const endVal    = Math.max(reading, startVal + major) + major * 2;
-    const numMajors = Math.ceil((endVal - startVal) / major);
-
-    // ── Scale pixel width is purely tickPxMaj × numMajors ──
-    // The ruler image is then stretched to match this width.
-    // Zoom scales the ruler HEIGHT only — so zoom makes the ruler taller/shorter
-    // while tick spacing makes the divisions wider/narrower independently.
-    const scalePixW = numMajors * tickPxMaj;
-    const rulerH    = Math.round(100 * zoom);
-
-    const padLeft  = Math.round(fontSize * 1.5);
-    const padRight = Math.round(fontSize * 2.5);
-    const padTop   = Math.round(fontSize * 3.5 + 14);
-    const padBot   = 10;
-
-    canvas.width  = scalePixW + padLeft + padRight;
-    canvas.height = rulerH + padTop + padBot;
+    // Canvas = full image scaled by zoom
+    canvas.width  = Math.round(IW * zoom);
+    canvas.height = Math.round(IH * zoom);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!transparent) {
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Draw the ruler image stretched to scalePixW × rulerH
-    // The image stretches with the tick spacing so the wooden body always fills the scale area
-    const imgX = padLeft;
-    const imgY = padTop;
+    // Draw image at full zoomed size
     if (img) {
-      ctx.drawImage(img, imgX, imgY, scalePixW, rulerH);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     } else {
       ctx.fillStyle = '#c8a04a';
-      ctx.fillRect(imgX, imgY, scalePixW, rulerH);
-      ctx.strokeStyle = '#8a6820';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(imgX, imgY, scalePixW, rulerH);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // ── Tick positions ──
-    // scaleLeft is the pixel x where value=startVal tick goes
-    const scaleLeft = imgX + scalePixW * SCALE_LEFT_PAD_F;
-    const tickTopY  = imgY + rulerH * TICK_TOP_F;
-    const tickAreaH = rulerH * TICK_AREA_H_F;
-    const subPx     = tickPxMaj / subs;
+    // Ruler geometry scaled by zoom
+    const rLeft  = RULER_LEFT  * zoom;
+    const rRight = RULER_RIGHT * zoom;
+    const rTop   = RULER_TOP   * zoom;
+    const rBot   = RULER_BOT   * zoom;
+    const rH     = rBot - rTop;
+
+    // Tick spacing is pxPerMajor pixels (not scaled by zoom — this is the independent control)
+    const pxPerSub = pxPerMajor / subs;
+    const subVal   = major / subs;
+    const decPlaces = Math.max(0, -Math.floor(Math.log10(subVal)));
+
+    const majorH = rH * 0.55;
+    const medH   = rH * 0.36;
+    const minH   = rH * 0.22;
 
     ctx.save();
-    ctx.strokeStyle  = '#111';
-    ctx.fillStyle    = '#111';
-    ctx.lineWidth    = Math.max(0.8, zoom * 0.9);
-    ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-    ctx.textAlign    = 'center';
+    ctx.strokeStyle = '#111';
+    ctx.fillStyle   = '#111';
+    ctx.lineWidth   = Math.max(0.8, 1.2 * zoom);
+    ctx.font        = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+    ctx.textAlign   = 'center';
     ctx.textBaseline = 'top';
 
-    for (let i = 0; i <= numMajors; i++) {
-      const majorX = scaleLeft + i * tickPxMaj;
-      if (majorX > imgX + scalePixW - 1) break;
+    let tickIdx = 0;
+    let v = startVal;
+    while (true) {
+      const x = rLeft + tickIdx * pxPerSub;
+      if (x > rRight + 1) break;
+      const isMajor = (tickIdx % subs === 0);
+      const isMid   = !isMajor && subs >= 4 && (tickIdx % Math.floor(subs / 2) === 0);
+      const h = isMajor ? majorH : isMid ? medH : minH;
 
-      const majH = tickAreaH * 0.55;
       ctx.beginPath();
-      ctx.moveTo(majorX, tickTopY);
-      ctx.lineTo(majorX, tickTopY + majH);
+      ctx.moveTo(x, rTop);
+      ctx.lineTo(x, rTop + h);
       ctx.stroke();
 
-      const labelVal  = startVal + i * major;
-      const decPlaces = String(major).includes('.')
-        ? String(major).split('.')[1].length : 0;
-      ctx.fillText(labelVal.toFixed(decPlaces), majorX, tickTopY + majH + 3);
-
-      for (let s = 1; s < subs; s++) {
-        const subX = majorX + s * subPx;
-        if (subX > imgX + scalePixW - 1) break;
-        const isMid = (subs % 2 === 0) && (s === subs / 2);
-        const h     = isMid ? tickAreaH * 0.40 : tickAreaH * 0.25;
-        ctx.beginPath();
-        ctx.moveTo(subX, tickTopY);
-        ctx.lineTo(subX, tickTopY + h);
-        ctx.stroke();
+      if (isMajor) {
+        ctx.fillText(parseFloat(v.toFixed(decPlaces)) + ' ' + unit, x, rTop + majorH + 3);
       }
-    }
 
-    // Unit label
-    ctx.textAlign = 'left';
-    ctx.fillText(unit, scaleLeft + numMajors * tickPxMaj + 4, tickTopY + tickAreaH * 0.55 + 3);
+      tickIdx++;
+      v = parseFloat((startVal + tickIdx * subVal).toFixed(10));
+    }
     ctx.restore();
 
-    // ── Arrow ──
-    const readFrac   = (reading - startVal) / major;
-    const readX      = scaleLeft + readFrac * tickPxMaj;
-    const arrowTipY  = tickTopY - 1;
-    const arrowHW    = Math.max(5, fontSize * 0.55);
-    const stemLen    = Math.round(fontSize * 1.2);
-    const headBaseY  = arrowTipY - arrowHW * 1.6;
-    const stemTopY   = headBaseY - stemLen;
+    // ── Arrow + reading ──
+    const rulerWidthPx = rRight - rLeft;
+    const numMajorFit  = rulerWidthPx / pxPerMajor;
+    const readFrac     = (reading - startVal) / (major * numMajorFit);
+    const readX        = rLeft + readFrac * rulerWidthPx;
+
+    const arrowTipY = rTop - 4 * zoom;
+    const aw = Math.max(5, 8 * zoom);
+    const ah = Math.max(6, 10 * zoom);
 
     ctx.save();
-    ctx.fillStyle   = '#e03030';
-    ctx.strokeStyle = '#e03030';
-    ctx.lineWidth   = Math.max(1.5, zoom * 1.2);
+    ctx.strokeStyle = '#c00';
+    ctx.fillStyle   = '#c00';
+    ctx.lineWidth   = Math.max(1.5, 2 * zoom);
 
     if (arrowStyle === 'line') {
-      // Vertical line from tip downward through the full ruler body
+      // Vertical line from arrow tip down through full ruler body
       ctx.beginPath();
-      ctx.moveTo(readX, arrowTipY);
-      ctx.lineTo(readX, imgY + rulerH);
+      ctx.moveTo(readX, arrowTipY + ah);
+      ctx.lineTo(readX, rBot);
       ctx.stroke();
-
-      // Arrowhead pointing down
+      // Short stem above arrowhead
       ctx.beginPath();
-      ctx.moveTo(readX,           arrowTipY);
-      ctx.lineTo(readX - arrowHW, headBaseY);
-      ctx.lineTo(readX + arrowHW, headBaseY);
-      ctx.closePath();
-      ctx.fill();
-
-      // Short stem above head
-      ctx.beginPath();
-      ctx.moveTo(readX, headBaseY);
-      ctx.lineTo(readX, stemTopY);
+      ctx.moveTo(readX, arrowTipY - ah * 1.5);
+      ctx.lineTo(readX, arrowTipY);
       ctx.stroke();
     } else {
-      // Pointer only
+      // Pointer only: stem above arrowhead
       ctx.beginPath();
-      ctx.moveTo(readX, stemTopY);
-      ctx.lineTo(readX, headBaseY);
+      ctx.moveTo(readX, arrowTipY - ah * 2);
+      ctx.lineTo(readX, arrowTipY);
       ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(readX,           arrowTipY);
-      ctx.lineTo(readX - arrowHW, headBaseY);
-      ctx.lineTo(readX + arrowHW, headBaseY);
-      ctx.closePath();
-      ctx.fill();
     }
 
+    // Arrowhead pointing DOWN (tip at arrowTipY + ah)
+    ctx.beginPath();
+    ctx.moveTo(readX - aw, arrowTipY);
+    ctx.lineTo(readX + aw, arrowTipY);
+    ctx.lineTo(readX,      arrowTipY + ah);
+    ctx.closePath();
+    ctx.fill();
+
+    // Reading label
     if (showRead) {
-      ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-      ctx.textAlign    = 'center';
+      const lfs = fontSize;
+      ctx.font = `bold ${lfs}px 'Segoe UI', sans-serif`;
+      ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      ctx.fillText(`${reading} ${unit}`, readX, stemTopY - 2);
+      const lblText = reading + ' ' + unit;
+      const lblW = ctx.measureText(lblText).width + 14;
+      const lblY = arrowTipY - ah * 1.5 - 4;
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fillRect(readX - lblW / 2, lblY - lfs - 2, lblW, lfs + 6);
+      ctx.fillStyle = '#c00';
+      ctx.fillText(lblText, readX, lblY);
     }
 
     ctx.restore();
