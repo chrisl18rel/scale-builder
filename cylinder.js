@@ -3,10 +3,11 @@
 const cylinder = (() => {
   const IW = 1600, IH = 872;
   // Exact inner tube bounds from pixel scan of 1600×872 image
+  // TUBE_BOT set to 718 — where the inner glass tube meets the base pedestal
   const TUBE_LEFT  = 723;
   const TUBE_RIGHT = 876;
   const TUBE_TOP   = 47;
-  const TUBE_BOT   = 833;
+  const TUBE_BOT   = 718;
 
   let img = null;
 
@@ -25,6 +26,8 @@ const cylinder = (() => {
   bindSliderWithInput('c-zoom-range',     'c-zoom-num',     () => draw());
   bindSliderWithInput('c-tick-range',     'c-tick-num',     () => draw());
   bindSliderWithInput('c-fontsize-range', 'c-fontsize-num', () => draw());
+  bindSliderWithInput('c-lbl-x-range',    'c-lbl-x-num',    () => draw());
+  bindSliderWithInput('c-lbl-y-range',    'c-lbl-y-num',    () => draw());
 
   document.getElementById('c-show-reading').addEventListener('change', draw);
   document.getElementById('c-transparent').addEventListener('change', () => {
@@ -52,6 +55,8 @@ const cylinder = (() => {
     const unit       = strVal('c-unit', 'mL');
     const showRead   = isChecked('c-show-reading');
     const transparent = isChecked('c-transparent');
+    const lblOffX    = getVal('c-lbl-x-range', 'c-lbl-x-num', 0);
+    const lblOffY    = getVal('c-lbl-y-range', 'c-lbl-y-num', 0);
 
     canvas.width  = Math.round(IW * zoom);
     canvas.height = Math.round(IH * zoom);
@@ -180,15 +185,16 @@ const cylinder = (() => {
     if (showRead) {
       const decP    = Math.max(0, -Math.floor(Math.log10(subVal)));
       const lblText = reading.toFixed(decP) + ' ' + unit;
-      const lblX    = tRight + tickMajW + 8;
+      const lblX    = tRight + tickMajW + 8 + lblOffX;
+      const lblBaseY = clampedFillY + lblOffY;
       const lblW    = ctx.measureText(lblText).width + 14;
       ctx.fillStyle = 'rgba(255,255,255,0.92)';
-      ctx.fillRect(lblX - 4, clampedFillY - fontSize - 2, lblW, fontSize + 8);
+      ctx.fillRect(lblX - 4, lblBaseY - fontSize - 2, lblW, fontSize + 8);
       ctx.fillStyle    = '#c00';
       ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
       ctx.textAlign    = 'left';
       ctx.textBaseline = 'bottom';
-      ctx.fillText(lblText, lblX, clampedFillY + 2);
+      ctx.fillText(lblText, lblX, lblBaseY + 2);
     }
     ctx.restore();
   }
