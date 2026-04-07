@@ -171,14 +171,18 @@ const cylinder = (() => {
     }
     ctx.restore();
 
-    // ── Dashed reading line at liquid fill Y ──
+    // ── Dashed reading line: positioned by tickValToY so it aligns with the scale ──
+    // clampedFillY is still used for the liquid visual; the dashed line uses the tick system
+    const tickReadY       = tickValToY(reading);
+    const clampedTickReadY = Math.max(tTop + 1, Math.min(tBot - 1, tickReadY));
+
     ctx.save();
     ctx.strokeStyle = '#c00';
     ctx.lineWidth   = Math.max(1.5, 2 * zoom);
     ctx.setLineDash([5 * zoom, 3 * zoom]);
     ctx.beginPath();
-    ctx.moveTo(tLeft - 15 * zoom, clampedFillY);
-    ctx.lineTo(tRight + tickMajW + 5, clampedFillY);
+    ctx.moveTo(tLeft - 15 * zoom, clampedTickReadY);
+    ctx.lineTo(tRight + tickMajW + 5, clampedTickReadY);
     ctx.stroke();
     ctx.setLineDash([]);
 
@@ -186,7 +190,7 @@ const cylinder = (() => {
       const decP    = Math.max(0, -Math.floor(Math.log10(subVal)));
       const lblText = reading.toFixed(decP) + ' ' + unit;
       const lblX    = tRight + tickMajW + 8 + lblOffX;
-      const lblBaseY = clampedFillY + lblOffY;
+      const lblBaseY = clampedTickReadY + lblOffY;
       const lblW    = ctx.measureText(lblText).width + 14;
       ctx.fillStyle = 'rgba(255,255,255,0.92)';
       ctx.fillRect(lblX - 4, lblBaseY - fontSize - 2, lblW, fontSize + 8);
