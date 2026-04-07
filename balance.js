@@ -5,15 +5,14 @@ const balance = (() => {
 
   // Beam geometry calibrated from pixel scan of 1600×872 image
   // topRail: top of dark rail (used for arrow tip reference)
-  // silverTop: first row of silver/white beam body (where ticks start)
+  // silverTop: first row of silver/white beam body (where ticks + rider start)
+  // silverBot: last row of silver area (where rider ends)
   // botRail: bottom dark rail
   const BEAM_DEFS = [
-    { topRail:  97, silverTop: 102, botRail: 233, labelFrac: 0.55 },
-    { topRail: 340, silverTop: 373, botRail: 528, labelFrac: 0.65 },
-    { topRail: 623, silverTop: 656, botRail: 778, labelFrac: 0.65 },
+    { topRail:  97, silverTop: 102, silverBot: 222, botRail: 233, labelFrac: 0.55 },
+    { topRail: 340, silverTop: 373, silverBot: 499, botRail: 528, labelFrac: 0.65 },
+    { topRail: 623, silverTop: 656, silverBot: 777, botRail: 778, labelFrac: 0.65 },
   ];
-  // Beam 1 rider top should be at y=58 in original image
-  const BEAM1_RIDER_TOP = 58;
   const B_LEFT  = 116;
   const B_RIGHT = 1446;
 
@@ -212,10 +211,10 @@ const balance = (() => {
       const riderX = bLeft + (clampedReading - cfg.min) * pxPerUnit;
 
       if (riderX >= bLeft - 5 && riderX <= bRight + 5) {
-        const rW = Math.max(14, 22 * zoom);
-        // Beam 1 rider top calibrated to y=58 in original image; others sit at silver area top
-        const rY = (idx === 0) ? BEAM1_RIDER_TOP * zoom : silverY;
-        const rH = botY - rY;
+        const rW      = Math.max(14, 22 * zoom);
+        const rY      = bd.silverTop * zoom;          // rider top = top of silver area
+        const rBottom = bd.silverBot * zoom;          // rider bottom = bottom of silver area
+        const rH      = rBottom - rY;
 
         ctx.save();
         const rg = ctx.createLinearGradient(riderX - rW/2, 0, riderX + rW/2, 0);
@@ -227,20 +226,31 @@ const balance = (() => {
         ctx.roundRect(riderX - rW/2, rY, rW, rH, 2 * zoom);
         ctx.fill(); ctx.stroke();
 
+        // Center notch
         ctx.strokeStyle = '#222'; ctx.lineWidth = Math.max(0.8, 1.5 * zoom);
         ctx.beginPath(); ctx.moveTo(riderX, rY + 2); ctx.lineTo(riderX, rY + rH - 2); ctx.stroke();
 
-        const arrowBaseY = rY;
-        const arrowTipY  = topY - 18 * zoom;  // raised 15px (was -3)
+        // Arrow: tip floats above topRail, stem goes from tip down to rider top
+        // arrowTipY is above the beam; stem connects down to rY (silver top)
+        const arrowTipY  = topY - 18 * zoom;  // above the dark rail
         const aw = Math.max(5, 7 * zoom);
+        // Arrowhead pointing DOWN (tip is lowest point of the triangle)
+        const headBaseY = arrowTipY;           // flat base of triangle
+        const headTipY  = arrowTipY + aw * 1.6; // pointed tip, below base
         ctx.fillStyle = '#c00'; ctx.strokeStyle = '#c00';
         ctx.lineWidth = Math.max(1, 1.5 * zoom);
-        ctx.beginPath(); ctx.moveTo(riderX, arrowBaseY); ctx.lineTo(riderX, arrowTipY + aw); ctx.stroke();
+        // Stem from arrowhead down to rider top
         ctx.beginPath();
-        ctx.moveTo(riderX - aw, arrowTipY + aw);
-        ctx.lineTo(riderX + aw, arrowTipY + aw);
-        ctx.lineTo(riderX,      arrowTipY + aw * 2);
-        ctx.closePath(); ctx.fill();
+        ctx.moveTo(riderX, headTipY);
+        ctx.lineTo(riderX, rY);
+        ctx.stroke();
+        // Arrowhead (downward-pointing triangle)
+        ctx.beginPath();
+        ctx.moveTo(riderX - aw, headBaseY);
+        ctx.lineTo(riderX + aw, headBaseY);
+        ctx.lineTo(riderX,      headTipY);
+        ctx.closePath();
+        ctx.fill();
         ctx.restore();
       }
 
