@@ -1,18 +1,14 @@
 // cylinder.js
 
 const cylinder = (() => {
-  // Original image dimensions (resized to 1600×872 in images.js)
+  // Image dimensions in images.js (1600×872)
   const IW = 1600, IH = 872;
 
-  // Cylinder inner tube bounds in original image pixels
-  // From old code: original was 2816×1536, tube left=1285, right=1530, top=130, bot=1420
-  // But our resized image is 1600×872 (scale = 1600/2816 = 0.568)
-  // These will be refined once pixel coords are confirmed
-  const SCALE = 1600 / 2816;
-  const TUBE_LEFT_O  = Math.round(1285 * SCALE);   // ~460
-  const TUBE_RIGHT_O = Math.round(1530 * SCALE);   // ~548
-  const TUBE_TOP_O   = Math.round(130  * SCALE);   // ~47
-  const TUBE_BOT_O   = Math.round(1420 * SCALE);   // ~508
+  // Cylinder inner tube bounds in 1600×872 image (scaled from original 2816×1536)
+  const TUBE_LEFT  = 730;
+  const TUBE_RIGHT = 869;
+  const TUBE_TOP   = 74;
+  const TUBE_BOT   = 806;
 
   let img = null;
 
@@ -38,7 +34,7 @@ const cylinder = (() => {
 
   function draw() {
     const zoom        = numVal('c-zoom', 100) / 100;
-    const pxPerMajor  = numVal('c-tick', 50);      // canvas px per major division (independent of zoom)
+    const pxPerMajor  = numVal('c-tick', 50);
     const maxV        = Math.max(1, numVal('c-max', 100));
     const minV        = 0;
     const major       = Math.max(0.01, numVal('c-major', 10));
@@ -60,16 +56,15 @@ const cylinder = (() => {
     }
 
     // Tube bounds scaled by zoom
-    const tLeft  = TUBE_LEFT_O  * zoom;
-    const tRight = TUBE_RIGHT_O * zoom;
-    const tTop   = TUBE_TOP_O   * zoom;
-    const tBot   = TUBE_BOT_O   * zoom;
+    const tLeft  = TUBE_LEFT  * zoom;
+    const tRight = TUBE_RIGHT * zoom;
+    const tTop   = TUBE_TOP   * zoom;
+    const tBot   = TUBE_BOT   * zoom;
     const tW     = tRight - tLeft;
     const tH     = tBot - tTop;
     const tCX    = (tLeft + tRight) / 2;
 
-    // Value → Y: pxPerMajor pixels per major division, going upward
-    // Bottom of tube = minV, top = determined by scale
+    // Value → Y: pxPerMajor px per major division, values increase upward
     function valToY(v) {
       return tBot - (v - minV) * (pxPerMajor / major);
     }
@@ -77,14 +72,15 @@ const cylinder = (() => {
     const fillY        = valToY(reading);
     const clampedFillY = Math.max(tTop, Math.min(tBot, fillY));
 
-    // ── Liquid fill (drawn before image so glass overlays it) ──
+    // ── Liquid fill (drawn BEFORE image so glass overlays it) ──
     if (clampedFillY < tBot) {
       ctx.save();
+      // Clip to tube interior
       ctx.beginPath();
       ctx.rect(tLeft, tTop, tW, tH);
       ctx.clip();
 
-      // Liquid body with gradient
+      // Liquid body gradient
       const grad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
       grad.addColorStop(0,    'rgba(80,170,225,0.88)');
       grad.addColorStop(0.18, 'rgba(130,205,245,0.70)');
@@ -93,7 +89,7 @@ const cylinder = (() => {
       ctx.fillStyle = grad;
       ctx.fillRect(tLeft, clampedFillY, tW, tBot - clampedFillY);
 
-      // Concave meniscus: edges curve UP, center is at clampedFillY (the reading)
+      // Concave meniscus: edges curve UP, center stays at clampedFillY
       const mDepth = tW * 0.10;
       ctx.fillStyle = grad;
       ctx.beginPath();
@@ -115,7 +111,7 @@ const cylinder = (() => {
 
       // Meniscus outline
       ctx.strokeStyle = 'rgba(20,110,175,0.95)';
-      ctx.lineWidth = Math.max(1.5, 2.2 * zoom);
+      ctx.lineWidth   = Math.max(1.5, 2 * zoom);
       ctx.beginPath();
       ctx.moveTo(tLeft, clampedFillY - mDepth);
       ctx.bezierCurveTo(
@@ -130,7 +126,7 @@ const cylinder = (() => {
       );
       ctx.stroke();
 
-      // Glass glare highlight
+      // Glass glare
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
       ctx.fillRect(tLeft + tW * 0.64, clampedFillY, tW * 0.11, tBot - clampedFillY);
 
@@ -146,7 +142,7 @@ const cylinder = (() => {
       ctx.strokeRect(tLeft, tTop, tW, tH);
     }
 
-    // ── Tick marks to the RIGHT of tube ──
+    // ── Tick marks on RIGHT side of tube ──
     const tickMajW = tW * 0.60;
     const tickMedW = tW * 0.40;
     const tickMinW = tW * 0.25;
@@ -169,7 +165,7 @@ const cylinder = (() => {
       if (y <= tBot + 2) {
         const isMajor = (tickIdx % subs === 0);
         const isMid   = !isMajor && subs >= 4 && (tickIdx % Math.floor(subs / 2) === 0);
-        const tw = isMajor ? tickMajW : isMid ? tickMedW : tickMinW;
+        const tw      = isMajor ? tickMajW : isMid ? tickMedW : tickMinW;
 
         ctx.beginPath();
         ctx.moveTo(tRight, y);
@@ -177,7 +173,11 @@ const cylinder = (() => {
         ctx.stroke();
 
         if (isMajor) {
-          ctx.fillText(parseFloat(v.toFixed(decPlaces)) + ' ' + unit, tRight + tickMajW + 5, y);
+          ctx.fillText(
+            parseFloat(v.toFixed(decPlaces)) + ' ' + unit,
+            tRight + tickMajW + 5,
+            y
+          );
         }
       }
       tickIdx++;
@@ -185,11 +185,10 @@ const cylinder = (() => {
     }
     ctx.restore();
 
-    // ── Dashed reading line ──
+    // ── Dashed reading line + label ──
     if (fillY >= tTop - 30 && fillY <= tBot + 10) {
       ctx.save();
       ctx.strokeStyle = '#c00';
-      ctx.fillStyle   = '#c00';
       ctx.lineWidth   = Math.max(1.5, 2 * zoom);
       ctx.setLineDash([5 * zoom, 3 * zoom]);
       ctx.beginPath();
@@ -198,18 +197,17 @@ const cylinder = (() => {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Reading label to the right
       if (showRead) {
-        const lfs = fontSize;
-        ctx.font = `bold ${lfs}px 'Segoe UI', sans-serif`;
+        const decP    = Math.max(0, -Math.floor(Math.log10(subVal)));
+        const lblText = reading.toFixed(decP) + ' ' + unit;
+        const lblX    = tRight + tickMajW + 8;
+        const lblW    = ctx.measureText(lblText).width + 14;
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.fillRect(lblX - 4, clampedFillY - fontSize - 2, lblW, fontSize + 8);
+        ctx.fillStyle    = '#c00';
+        ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
         ctx.textAlign    = 'left';
         ctx.textBaseline = 'bottom';
-        const lblText = reading + ' ' + unit;
-        const lblX = tRight + tickMajW + 8;
-        const lblW = ctx.measureText(lblText).width + 14;
-        ctx.fillStyle = 'rgba(255,255,255,0.92)';
-        ctx.fillRect(lblX - 4, clampedFillY - lfs - 2, lblW, lfs + 8);
-        ctx.fillStyle = '#c00';
         ctx.fillText(lblText, lblX, clampedFillY + 2);
       }
       ctx.restore();
