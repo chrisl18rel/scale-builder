@@ -1,17 +1,12 @@
 // cylinder.js
 
 const cylinder = (() => {
-  // ── Source image crop region (within full 1528×1453 image)
-  // Cylinder inner tube: cols ~1273–1542, rows ~90–1453 (original full image coords)
-  // The blank image IS the cylinder (full image), so we use the whole image
-  // Inner tube bounds as fraction of the full image:
-  const TUBE_LEFT_F   = 0.415;  // fraction of img width
+  // Inner tube bounds as fraction of the full blank_graduated_cylinder.png image
+  // These are estimates — adjust if overlay is off after image loads
+  const TUBE_LEFT_F   = 0.415;
   const TUBE_RIGHT_F  = 0.505;
   const TUBE_TOP_F    = 0.063;
   const TUBE_BOTTOM_F = 0.975;
-
-  // Tick marks drawn to the LEFT of the tube's left edge
-  const TICK_RIGHT_OFFSET = 0.010; // fraction of canvas width gap between tube and ticks
 
   let img = null;
 
@@ -20,62 +15,63 @@ const cylinder = (() => {
 
   loadImage('blank_graduated_cylinder.png')
     .then(loaded => { img = loaded; draw(); })
-    .catch(() => { draw(); });
+    .catch(err => { console.error('Cylinder image failed:', err); draw(); });
 
-  // ── Bind controls ──────────────────────────────────────
   ['c-max','c-unit','c-major','c-subs','c-reading'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', draw);
   });
-
   bindSlider('c-zoom',     'c-zoom-val',     '%',  () => draw());
   bindSlider('c-tick',     'c-tick-val',     'px', () => draw());
   bindSlider('c-fontsize', 'c-fontsize-val', 'px', () => draw());
-
   document.getElementById('c-show-reading').addEventListener('change', draw);
   document.getElementById('c-transparent').addEventListener('change', () => {
     updateBgClass('c-checker', isChecked('c-transparent'));
     draw();
   });
 
-  // ── Main Draw ─────────────────────────────────────────
   function draw() {
-    const zoom       = numVal('c-zoom', 100) / 100;
-    const tickPxMaj  = numVal('c-tick', 50);
-    const maxCap     = Math.max(1, numVal('c-max', 100));
-    const major      = Math.max(0.01, numVal('c-major', 10));
-    const subs       = Math.max(1, Math.round(numVal('c-subs', 5)));
-    const reading    = Math.min(maxCap, Math.max(0, numVal('c-reading', 42)));
-    const unit       = strVal('c-unit', 'mL');
-    const fontSize   = numVal('c-fontsize', 14);
-    const showRead   = isChecked('c-show-reading');
+    const zoom        = numVal('c-zoom', 100) / 100;
+    const tickPxMaj   = numVal('c-tick', 50);
+    const maxCap      = Math.max(1, numVal('c-max', 100));
+    const major       = Math.max(0.01, numVal('c-major', 10));
+    const subs        = Math.max(1, Math.round(numVal('c-subs', 5)));
+    const reading     = Math.min(maxCap, Math.max(0, numVal('c-reading', 42)));
+    const unit        = strVal('c-unit', 'mL');
+    const fontSize    = numVal('c-fontsize', 14);
+    const showRead    = isChecked('c-show-reading');
     const transparent = isChecked('c-transparent');
 
-    // Total scale height in canvas pixels
-    const numMajors      = Math.ceil(maxCap / major);
-    const totalScaleH    = numMajors * tickPxMaj;
+    // ── Canvas sizing ──
+    // Total scale height = numMajors * tickPxMaj
+    // Canvas height is scaled so that tube pixel height == totalScaleH
+    const numMajors   = Math.ceil(maxCap / major);
+    const totalScaleH = numMajors * tickPxMaj;
+    const tubeFrac    = TUBE_BOTTOM_F - TUBE_TOP_F;
 
-    // Canvas dimensions
-    const baseImgW   = img ? img.naturalWidth  : 400;
-    const baseImgH   = img ? img.naturalHeight : 800;
-    const imgAspect  = baseImgW / baseImgH;
+    // Base canvas dimensions (before zoom)
+    const baseImgW = img ? img.naturalWidth  : 300;
+    const baseImgH = img ? img.naturalHeight : 900;
+    const imgAspect = baseImgW / baseImgH;
 
-    // Height: scale must fit inside tube.  Canvas height = totalScaleH / tubeFraction + padding
-    const tubeFrac   = TUBE_BOTTOM_F - TUBE_TOP_F;  // ~0.912
-    const canvasH    = Math.round((totalScaleH / tubeFrac) * zoom);
-    const canvasW    = Math.round(canvasH * imgAspect * zoom);
+    // Height: make tube pixel height = totalScaleH
+    const baseH   = Math.round(totalScaleH / tubeFrac);
+    const baseW   = Math.round(baseH * imgAspect);
+
+    // Apply zoom to whole canvas
+    const canvasH = Math.round(baseH * zoom);
+    const canvasW = Math.round(baseW * zoom);
 
     canvas.width  = canvasW;
     canvas.height = canvasH;
 
     ctx.clearRect(0, 0, canvasW, canvasH);
-
     if (!transparent) {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvasW, canvasH);
     }
 
-    // ── Tube pixel bounds on canvas ──
+    // Tube pixel bounds
     const tubeLeft   = canvasW * TUBE_LEFT_F;
     const tubeRight  = canvasW * TUBE_RIGHT_F;
     const tubeTop    = canvasH * TUBE_TOP_F;
@@ -83,38 +79,33 @@ const cylinder = (() => {
     const tubeW      = tubeRight - tubeLeft;
     const tubeH      = tubeBottom - tubeTop;
 
-    // ── Value → Y mapping (0 at bottom, maxCap at top) ──
+    // Value → Y (0 at bottom, maxCap at top)
     function valToY(v) {
-      const frac = v / maxCap;
+      const frac = Math.max(0, Math.min(1, v / maxCap));
       return tubeBottom - frac * tubeH;
     }
 
-    // ── Fill liquid ──
-    const fillY  = valToY(reading);
-    const clampedFillY = Math.max(tubeTop + 2, Math.min(tubeBottom - 2, fillY));
+    // ── Liquid fill ──
+    const fillY = Math.max(tubeTop + 1, Math.min(tubeBottom - 1, valToY(reading)));
 
-    // Liquid rectangle (below meniscus center)
+    // Solid fill below meniscus
     ctx.fillStyle = 'rgba(100, 180, 230, 0.55)';
-    ctx.fillRect(tubeLeft + 1, clampedFillY, tubeW - 2, tubeBottom - clampedFillY);
+    ctx.fillRect(tubeLeft + 1, fillY, tubeW - 2, tubeBottom - fillY);
 
-    // ── Meniscus (concave — edges curve UP, center stays at reading) ──
-    // Proper concave meniscus: left and right edges are HIGHER than the center
-    const meniscusDepth = Math.min(tubeW * 0.22, 12 * zoom); // how much edges rise above center
-    const mCenterY = clampedFillY;
-    const mEdgeY   = mCenterY - meniscusDepth; // edges are above center (smaller Y = higher)
-    const cp1Y     = mEdgeY;   // control points pull the curve toward the edges
-    const cp2Y     = mEdgeY;
+    // Concave meniscus: edges are HIGHER (smaller Y) than center
+    const menDepth = Math.min(tubeW * 0.22, 10 * zoom);
+    const mCenterY = fillY;
+    const mEdgeY   = fillY - menDepth;
 
     ctx.beginPath();
     ctx.moveTo(tubeLeft + 1, mEdgeY);
-    // Cubic bezier: from left edge, curve down to center, then back up to right edge
     ctx.bezierCurveTo(
-      tubeLeft  + tubeW * 0.3, mCenterY + meniscusDepth * 0.5,  // cp1: pull down toward center-left
-      tubeRight - tubeW * 0.3, mCenterY + meniscusDepth * 0.5,  // cp2: pull down toward center-right
-      tubeRight - 1, mEdgeY                                       // endpoint: right edge at same height
+      tubeLeft  + tubeW * 0.30, mCenterY + menDepth * 0.6,
+      tubeRight - tubeW * 0.30, mCenterY + menDepth * 0.6,
+      tubeRight - 1, mEdgeY
     );
     ctx.lineTo(tubeRight - 1, tubeBottom);
-    ctx.lineTo(tubeLeft + 1,  tubeBottom);
+    ctx.lineTo(tubeLeft  + 1, tubeBottom);
     ctx.closePath();
     ctx.fillStyle = 'rgba(100, 180, 230, 0.55)';
     ctx.fill();
@@ -123,89 +114,98 @@ const cylinder = (() => {
     ctx.beginPath();
     ctx.moveTo(tubeLeft + 1, mEdgeY);
     ctx.bezierCurveTo(
-      tubeLeft  + tubeW * 0.3, mCenterY + meniscusDepth * 0.5,
-      tubeRight - tubeW * 0.3, mCenterY + meniscusDepth * 0.5,
+      tubeLeft  + tubeW * 0.30, mCenterY + menDepth * 0.6,
+      tubeRight - tubeW * 0.30, mCenterY + menDepth * 0.6,
       tubeRight - 1, mEdgeY
     );
-    ctx.strokeStyle = 'rgba(40, 120, 180, 0.8)';
+    ctx.strokeStyle = 'rgba(40, 120, 180, 0.85)';
     ctx.lineWidth   = Math.max(1, 1.5 * zoom);
     ctx.stroke();
 
-    // ── Draw cylinder image on top ──
+    // ── Draw cylinder image on top of liquid ──
     if (img) {
       ctx.drawImage(img, 0, 0, canvasW, canvasH);
     } else {
-      ctx.strokeStyle = '#888';
+      // Fallback: draw tube outline
+      ctx.strokeStyle = '#999';
       ctx.lineWidth = 2;
       ctx.strokeRect(tubeLeft, tubeTop, tubeW, tubeH);
     }
 
-    // ── Tick marks ── (to the left of the tube)
-    const tickRightX  = tubeLeft - canvasW * TICK_RIGHT_OFFSET;
-    const subPxMaj    = tickPxMaj / subs;
+    // ── Ticks on the RIGHT side of the tube ──
+    const tickLeftX = tubeRight + canvasW * 0.008;
+    const subPxMaj  = tickPxMaj * zoom / subs;   // sub-interval px (already zoom-adjusted via canvas)
+    const tickPxMajZ = tickPxMaj * zoom;
 
     ctx.save();
-    ctx.strokeStyle = '#222';
-    ctx.fillStyle   = '#222';
-    ctx.lineWidth   = Math.max(1, zoom * 0.8);
-    ctx.font        = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-    ctx.textAlign   = 'right';
+    ctx.strokeStyle  = '#222';
+    ctx.fillStyle    = '#222';
+    ctx.lineWidth    = Math.max(0.8, zoom * 0.8);
+    ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+    ctx.textAlign    = 'left';
+    ctx.textBaseline = 'middle';
 
-    // Draw ticks from 0 to maxCap
-    // Number of sub-intervals total
     const totalSubIntervals = numMajors * subs;
     for (let i = 0; i <= totalSubIntervals; i++) {
-      const val  = (i / subs) * major;
+      const val = (i / subs) * major;
       if (val > maxCap + 0.0001) break;
 
-      const y    = valToY(val);
+      const y = valToY(val);
       if (y < tubeTop - 2 || y > tubeBottom + 2) continue;
 
       const isMajor = (i % subs === 0);
       const isMid   = !isMajor && (subs % 2 === 0) && (i % subs === subs / 2);
-      const tickLen = isMajor ? 18 * zoom : (isMid ? 12 * zoom : 8 * zoom);
+      const tickLen = isMajor ? 16 * zoom : (isMid ? 10 * zoom : 6 * zoom);
 
       ctx.beginPath();
-      ctx.moveTo(tickRightX, y);
-      ctx.lineTo(tickRightX - tickLen, y);
+      ctx.moveTo(tickLeftX, y);
+      ctx.lineTo(tickLeftX + tickLen, y);
       ctx.stroke();
 
       if (isMajor) {
-        const labelVal = val;
-        const label = labelVal % 1 === 0 ? labelVal.toString() : labelVal.toFixed(1);
-        ctx.fillText(label, tickRightX - tickLen - 4, y + fontSize * 0.35);
+        const decPlaces = String(major).includes('.')
+          ? String(major).split('.')[1].length : 0;
+        const label = val.toFixed(decPlaces);
+        ctx.fillText(label, tickLeftX + tickLen + 4, y);
       }
     }
 
     // Unit label at top
-    ctx.textAlign = 'right';
-    ctx.fillText(unit, tickRightX, tubeTop - 6);
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(unit, tickLeftX, tubeTop - 4);
     ctx.restore();
 
     // ── Dashed reading line ──
-    const dashY = clampedFillY;
     ctx.save();
     ctx.strokeStyle = 'rgba(200, 50, 50, 0.75)';
     ctx.lineWidth   = Math.max(1, zoom);
     ctx.setLineDash([4 * zoom, 3 * zoom]);
     ctx.beginPath();
-    ctx.moveTo(tubeLeft - 30 * zoom, dashY);
-    ctx.lineTo(tubeRight + 4, dashY);
+    ctx.moveTo(tubeLeft - 4, fillY);
+    ctx.lineTo(tubeRight + tickLen(true, zoom) + 4, fillY);
     ctx.stroke();
     ctx.restore();
 
-    // ── Reading label ──
+    // ── Reading label RIGHT side ──
     if (showRead) {
+      const decPlaces = String(major).includes('.')
+        ? String(major).split('.')[1].length : 0;
+      const label = `${reading.toFixed(decPlaces)} ${unit}`;
       ctx.save();
-      ctx.font      = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-      ctx.fillStyle = '#c82020';
-      ctx.textAlign = 'right';
-      ctx.fillText(`${reading} ${unit}`, tickRightX - 22 * zoom, dashY - 4);
+      ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+      ctx.fillStyle    = '#c82020';
+      ctx.textAlign    = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(label, tubeRight + canvasW * 0.008 + 22 * zoom, fillY - 2);
       ctx.restore();
     }
   }
 
-  // ── Export ────────────────────────────────────────────
+  // Helper for dash line endpoint
+  function tickLen(isMajor, zoom) {
+    return isMajor ? 16 * zoom : 6 * zoom;
+  }
+
   function exportPNG() {
     draw();
     const link = document.createElement('a');
