@@ -16,7 +16,7 @@
         <p>Generate measurement instrument images for science class</p>
       </div>
     </div>
-    <div class="app-version">v2.4</div>
+    <div class="app-version">v2.5</div>
   </header>
 
   <nav class="tab-nav">
@@ -66,37 +66,53 @@
 
           <div class="control-group">
             <div class="group-title">DISPLAY</div>
-            <label>Image Zoom (%)</label>
-            <div class="slider-input-row">
-              <input type="range" id="r-zoom-range" min="20" max="200" value="100" />
-              <input type="number" id="r-zoom-num" value="100" min="20" max="200" step="1" />
+
+            <div class="slider-zoom">
+              <label>Image Zoom (%)</label>
+              <div class="slider-input-row">
+                <input type="range" id="r-zoom-range" min="20" max="200" value="100" />
+                <input type="number" id="r-zoom-num" value="100" min="20" max="200" step="1" />
+              </div>
             </div>
-            <label>Tick Spacing (px/major div)</label>
-            <div class="slider-input-row">
-              <input type="range" id="r-tick-range" min="20" max="500" value="120" />
-              <input type="number" id="r-tick-num" value="120" min="20" max="500" step="1" />
+
+            <div class="slider-tick">
+              <label>Tick Spacing (px/major div)</label>
+              <div class="slider-input-row">
+                <input type="range" id="r-tick-range" min="20" max="500" value="120" />
+                <input type="number" id="r-tick-num" value="120" min="20" max="500" step="1" />
+              </div>
             </div>
-            <label>Text Size (px)</label>
-            <div class="slider-input-row">
-              <input type="range" id="r-fontsize-range" min="6" max="48" value="14" />
-              <input type="number" id="r-fontsize-num" value="14" min="6" max="48" step="1" />
+
+            <div class="slider-font">
+              <label>Text Size (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="r-fontsize-range" min="6" max="48" value="14" />
+                <input type="number" id="r-fontsize-num" value="14" min="6" max="48" step="1" />
+              </div>
             </div>
+
+            <hr class="display-divider" />
+
             <div class="toggle-row">
               <label class="toggle-label">
                 <input type="checkbox" id="r-show-reading" checked />
                 Show reading value
               </label>
             </div>
-            <label>Reading Label Offset X (px)</label>
-            <div class="slider-input-row">
-              <input type="range" id="r-lbl-x-range" min="-150" max="150" value="0" />
-              <input type="number" id="r-lbl-x-num" value="0" min="-150" max="150" step="1" />
+
+            <div class="slider-offset">
+              <label>Reading Label Offset X (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="r-lbl-x-range" min="-150" max="150" value="0" />
+                <input type="number" id="r-lbl-x-num" value="0" min="-150" max="150" step="1" />
+              </div>
+              <label>Reading Label Offset Y (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="r-lbl-y-range" min="-150" max="150" value="0" />
+                <input type="number" id="r-lbl-y-num" value="0" min="-150" max="150" step="1" />
+              </div>
             </div>
-            <label>Reading Label Offset Y (px)</label>
-            <div class="slider-input-row">
-              <input type="range" id="r-lbl-y-range" min="-150" max="150" value="0" />
-              <input type="number" id="r-lbl-y-num" value="0" min="-150" max="150" step="1" />
-            </div>
+
           </div>
 
           <div class="control-group">
@@ -157,37 +173,53 @@
 
           <div class="control-group">
             <div class="group-title">DISPLAY</div>
-            <label>Image Zoom (%)</label>
-            <div class="slider-input-row">
-              <input type="range" id="c-zoom-range" min="20" max="200" value="100" />
-              <input type="number" id="c-zoom-num" value="100" min="20" max="200" step="1" />
+
+            <div class="slider-zoom">
+              <label>Image Zoom (%)</label>
+              <div class="slider-input-row">
+                <input type="range" id="c-zoom-range" min="20" max="200" value="100" />
+                <input type="number" id="c-zoom-num" value="100" min="20" max="200" step="1" />
+              </div>
             </div>
-            <label>Scale Stretch (px/major div)</label>
-            <div class="slider-input-row">
-              <input type="range" id="c-tick-range" min="10" max="400" value="50" />
-              <input type="number" id="c-tick-num" value="50" min="10" max="400" step="1" />
+
+            <div class="slider-tick">
+              <label>Scale Stretch (px/major div)</label>
+              <div class="slider-input-row">
+                <input type="range" id="c-tick-range" min="10" max="400" value="50" />
+                <input type="number" id="c-tick-num" value="50" min="10" max="400" step="1" />
+              </div>
             </div>
-            <label>Text Size (px)</label>
-            <div class="slider-input-row">
-              <input type="range" id="c-fontsize-range" min="6" max="48" value="14" />
-              <input type="number" id="c-fontsize-num" value="14" min="6" max="48" step="1" />
+
+            <div class="slider-font">
+              <label>Text Size (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="c-fontsize-range" min="6" max="48" value="14" />
+                <input type="number" id="c-fontsize-num" value="14" min="6" max="48" step="1" />
+              </div>
             </div>
+
+            <hr class="display-divider" />
+
             <div class="toggle-row">
               <label class="toggle-label">
                 <input type="checkbox" id="c-show-reading" checked />
                 Show reading value
               </label>
             </div>
-            <label>Reading Label Offset X (px)</label>
-            <div class="slider-input-row">
-              <input type="range" id="c-lbl-x-range" min="-150" max="150" value="0" />
-              <input type="number" id="c-lbl-x-num" value="0" min="-150" max="150" step="1" />
+
+            <div class="slider-offset">
+              <label>Reading Label Offset X (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="c-lbl-x-range" min="-150" max="150" value="0" />
+                <input type="number" id="c-lbl-x-num" value="0" min="-150" max="150" step="1" />
+              </div>
+              <label>Reading Label Offset Y (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="c-lbl-y-range" min="-150" max="150" value="0" />
+                <input type="number" id="c-lbl-y-num" value="0" min="-150" max="150" step="1" />
+              </div>
             </div>
-            <label>Reading Label Offset Y (px)</label>
-            <div class="slider-input-row">
-              <input type="range" id="c-lbl-y-range" min="-150" max="150" value="0" />
-              <input type="number" id="c-lbl-y-num" value="0" min="-150" max="150" step="1" />
-            </div>
+
           </div>
 
           <div class="control-group">
@@ -259,67 +291,85 @@
 
           <div class="control-group">
             <div class="group-title">DISPLAY</div>
-            <label>Image Zoom (%)</label>
-            <div class="slider-input-row">
-              <input type="range" id="b-zoom-range" min="20" max="200" value="100" />
-              <input type="number" id="b-zoom-num" value="100" min="20" max="200" step="1" />
+
+            <div class="slider-zoom">
+              <label>Image Zoom (%)</label>
+              <div class="slider-input-row">
+                <input type="range" id="b-zoom-range" min="20" max="200" value="100" />
+                <input type="number" id="b-zoom-num" value="100" min="20" max="200" step="1" />
+              </div>
             </div>
-            <label>Text Size (px)</label>
-            <div class="slider-input-row">
-              <input type="range" id="b-fontsize-range" min="6" max="48" value="13" />
-              <input type="number" id="b-fontsize-num" value="13" min="6" max="48" step="1" />
+
+            <div class="slider-font">
+              <label>Text Size (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="b-fontsize-range" min="6" max="48" value="13" />
+                <input type="number" id="b-fontsize-num" value="13" min="6" max="48" step="1" />
+              </div>
             </div>
+
+            <hr class="display-divider" />
+
             <div class="toggle-row">
               <label class="toggle-label">
                 <input type="checkbox" id="b-show-reading" checked />
                 Show reading value
               </label>
             </div>
-            <label>Beam 1 Label Offset X</label>
-            <div class="slider-input-row">
-              <input type="range" id="b1-lbl-x-range" min="-150" max="150" value="0" />
-              <input type="number" id="b1-lbl-x-num" value="0" min="-150" max="150" step="1" />
+
+            <div class="slider-offset">
+              <label>Beam 1 Label Offset X</label>
+              <div class="slider-input-row">
+                <input type="range" id="b1-lbl-x-range" min="-150" max="150" value="0" />
+                <input type="number" id="b1-lbl-x-num" value="0" min="-150" max="150" step="1" />
+              </div>
+              <label>Beam 1 Label Offset Y</label>
+              <div class="slider-input-row">
+                <input type="range" id="b1-lbl-y-range" min="-150" max="150" value="0" />
+                <input type="number" id="b1-lbl-y-num" value="0" min="-150" max="150" step="1" />
+              </div>
+              <label>Beam 2 Label Offset X</label>
+              <div class="slider-input-row">
+                <input type="range" id="b2-lbl-x-range" min="-150" max="150" value="0" />
+                <input type="number" id="b2-lbl-x-num" value="0" min="-150" max="150" step="1" />
+              </div>
+              <label>Beam 2 Label Offset Y</label>
+              <div class="slider-input-row">
+                <input type="range" id="b2-lbl-y-range" min="-150" max="150" value="0" />
+                <input type="number" id="b2-lbl-y-num" value="0" min="-150" max="150" step="1" />
+              </div>
+              <label>Beam 3 Label Offset X</label>
+              <div class="slider-input-row">
+                <input type="range" id="b3-lbl-x-range" min="-150" max="150" value="0" />
+                <input type="number" id="b3-lbl-x-num" value="0" min="-150" max="150" step="1" />
+              </div>
+              <label>Beam 3 Label Offset Y</label>
+              <div class="slider-input-row">
+                <input type="range" id="b3-lbl-y-range" min="-150" max="150" value="0" />
+                <input type="number" id="b3-lbl-y-num" value="0" min="-150" max="150" step="1" />
+              </div>
             </div>
-            <label>Beam 1 Label Offset Y</label>
-            <div class="slider-input-row">
-              <input type="range" id="b1-lbl-y-range" min="-150" max="150" value="0" />
-              <input type="number" id="b1-lbl-y-num" value="0" min="-150" max="150" step="1" />
+
+            <hr class="display-divider" />
+
+            <div class="slider-shift">
+              <label>Beam 1 Scale Numbers Y Shift</label>
+              <div class="slider-input-row">
+                <input type="range" id="b1-scale-y-range" min="-200" max="200" value="0" />
+                <input type="number" id="b1-scale-y-num" value="0" min="-200" max="200" step="1" />
+              </div>
+              <label>Beam 2 Scale Numbers Y Shift</label>
+              <div class="slider-input-row">
+                <input type="range" id="b2-scale-y-range" min="-200" max="200" value="0" />
+                <input type="number" id="b2-scale-y-num" value="0" min="-200" max="200" step="1" />
+              </div>
+              <label>Beam 3 Scale Numbers Y Shift</label>
+              <div class="slider-input-row">
+                <input type="range" id="b3-scale-y-range" min="-200" max="200" value="0" />
+                <input type="number" id="b3-scale-y-num" value="0" min="-200" max="200" step="1" />
+              </div>
             </div>
-            <label>Beam 2 Label Offset X</label>
-            <div class="slider-input-row">
-              <input type="range" id="b2-lbl-x-range" min="-150" max="150" value="0" />
-              <input type="number" id="b2-lbl-x-num" value="0" min="-150" max="150" step="1" />
-            </div>
-            <label>Beam 2 Label Offset Y</label>
-            <div class="slider-input-row">
-              <input type="range" id="b2-lbl-y-range" min="-150" max="150" value="0" />
-              <input type="number" id="b2-lbl-y-num" value="0" min="-150" max="150" step="1" />
-            </div>
-            <label>Beam 3 Label Offset X</label>
-            <div class="slider-input-row">
-              <input type="range" id="b3-lbl-x-range" min="-150" max="150" value="0" />
-              <input type="number" id="b3-lbl-x-num" value="0" min="-150" max="150" step="1" />
-            </div>
-            <label>Beam 3 Label Offset Y</label>
-            <div class="slider-input-row">
-              <input type="range" id="b3-lbl-y-range" min="-150" max="150" value="0" />
-              <input type="number" id="b3-lbl-y-num" value="0" min="-150" max="150" step="1" />
-            </div>
-            <label>Beam 1 Scale Numbers Y Shift</label>
-            <div class="slider-input-row">
-              <input type="range" id="b1-scale-y-range" min="-200" max="200" value="0" />
-              <input type="number" id="b1-scale-y-num" value="0" min="-200" max="200" step="1" />
-            </div>
-            <label>Beam 2 Scale Numbers Y Shift</label>
-            <div class="slider-input-row">
-              <input type="range" id="b2-scale-y-range" min="-200" max="200" value="0" />
-              <input type="number" id="b2-scale-y-num" value="0" min="-200" max="200" step="1" />
-            </div>
-            <label>Beam 3 Scale Numbers Y Shift</label>
-            <div class="slider-input-row">
-              <input type="range" id="b3-scale-y-range" min="-200" max="200" value="0" />
-              <input type="number" id="b3-scale-y-num" value="0" min="-200" max="200" step="1" />
-            </div>
+
           </div>
 
           <div class="control-group">
