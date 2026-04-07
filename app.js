@@ -30,9 +30,10 @@ function bindSlider(sliderId, labelId, suffix, cb) {
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload  = () => resolve(img);
     img.onerror = () => reject(new Error('Failed to load ' + src));
-    img.src = src;
+    img.src = src + '?v=' + Date.now();
   });
 }
 
