@@ -177,7 +177,13 @@ input[type="number"]:focus { border-color: var(--accent); }
 .slider-offset-b3 .slider-input-row input[type="range"] { accent-color: #26c6da; }
 .slider-offset-b3 label { color: #26c6da; }
 
-/* ── Display card section divider ── */
+/* Per-beam arrow Y offset colors — lime, amber, coral (all new, none previously used) */
+.slider-arrow-b1 .slider-input-row input[type="range"] { accent-color: #a3e635; }
+.slider-arrow-b1 label { color: #a3e635; }
+.slider-arrow-b2 .slider-input-row input[type="range"] { accent-color: #fbbf24; }
+.slider-arrow-b2 label { color: #fbbf24; }
+.slider-arrow-b3 .slider-input-row input[type="range"] { accent-color: #fb7185; }
+.slider-arrow-b3 label { color: #fb7185; }
 .display-divider {
   display: block;
   width: 100%;
