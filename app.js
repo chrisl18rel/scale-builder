@@ -107,3 +107,8 @@ if (b3subsSlider && b3subsLabel) {
     });
   }
 });
+
+// Reading label offset sliders wired after instruments load (deferred)
+// These are called from each instrument's own init instead, since
+// ruler/cylinder/balance objects don't exist yet at app.js parse time.
+// See each instrument file for bindSliderWithInput calls on lbl-x/lbl-y.
