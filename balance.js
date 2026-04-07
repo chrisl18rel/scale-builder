@@ -38,6 +38,10 @@ const balance = (() => {
   ['b1-lbl-x','b1-lbl-y','b2-lbl-x','b2-lbl-y','b3-lbl-x','b3-lbl-y'].forEach(base => {
     bindSliderWithInput(base + '-range', base + '-num', () => draw());
   });
+  // Per-beam scale number Y shift
+  ['b1-scale-y','b2-scale-y','b3-scale-y'].forEach(base => {
+    bindSliderWithInput(base + '-range', base + '-num', () => draw());
+  });
 
   document.getElementById('b-show-reading').addEventListener('change', draw);
   document.getElementById('b-transparent').addEventListener('change', () => {
@@ -77,6 +81,12 @@ const balance = (() => {
       { x: getVal('b1-lbl-x-range','b1-lbl-x-num',0), y: getVal('b1-lbl-y-range','b1-lbl-y-num',0) },
       { x: getVal('b2-lbl-x-range','b2-lbl-x-num',0), y: getVal('b2-lbl-y-range','b2-lbl-y-num',0) },
       { x: getVal('b3-lbl-x-range','b3-lbl-x-num',0), y: getVal('b3-lbl-y-range','b3-lbl-y-num',0) },
+    ];
+
+    const scaleNumShift = [
+      getVal('b1-scale-y-range','b1-scale-y-num', 0),
+      getVal('b2-scale-y-range','b2-scale-y-num', 0),
+      getVal('b3-scale-y-range','b3-scale-y-num', 0),
     ];
 
     const b1step = Math.max(0.01,  numVal('b1-step', 10));
@@ -145,8 +155,8 @@ const balance = (() => {
       const medTickH   = beamH * 0.36;
       const minTickH   = beamH * 0.22;
 
-      // Label Y: shifted into the silver/lower area of beam
-      const labelY = topY + beamH * bd.labelFrac + fontSize;
+      // Label Y: shifted into the silver/lower area of beam + user-controlled Y offset
+      const labelY = topY + beamH * bd.labelFrac + fontSize + scaleNumShift[idx];
 
       ctx.save();
       ctx.strokeStyle  = '#111';
