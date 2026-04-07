@@ -1,14 +1,16 @@
 // balance.js
 
 const balance = (() => {
-  // Image dimensions in images.js (1600×872)
   const IW = 1600, IH = 872;
 
-  // Beam geometry in 1600×872 image (scaled from original 2816×1536)
+  // Beam geometry in 1600×872 image
+  // topRail / botRail = the dark rail lines bounding each beam
+  // The silvery label area is the LOWER portion of each beam body
+  // Shift labels down by using a labelOffsetFrac of the beam height
   const BEAM_DEFS = [
-    { topRail:  97, botRail: 233 },
-    { topRail: 341, botRail: 528 },
-    { topRail: 624, botRail: 778 },
+    { topRail:  97, botRail: 233, labelFrac: 0.55 },
+    { topRail: 341, botRail: 528, labelFrac: 0.65 },  // shifted down into silver area
+    { topRail: 624, botRail: 778, labelFrac: 0.65 },  // shifted down into silver area
   ];
   const B_LEFT  = 116;
   const B_RIGHT = 1446;
@@ -29,23 +31,24 @@ const balance = (() => {
     if (el) el.addEventListener('input', draw);
   });
 
-  // When beam 1 or 2 step size changes, update the reading input's step attribute
-  ['b1','b2'].forEach(prefix => {
-    const stepEl    = document.getElementById(`${prefix}-step`);
-    const readingEl = document.getElementById(`${prefix}-reading`);
-    if (stepEl && readingEl) {
-      stepEl.addEventListener('input', () => {
-        readingEl.step = stepEl.value;
-      });
-    }
-  });
+  bindSliderWithInput('b-zoom-range',     'b-zoom-num',     () => draw());
+  bindSliderWithInput('b-fontsize-range', 'b-fontsize-num', () => draw());
 
-  bindSlider('b-zoom',     'b-zoom-val',     '%',  () => draw());
-  bindSlider('b-fontsize', 'b-fontsize-val', 'px', () => draw());
+  bindSlider('b3-subs', 'b3-subs-val', '', () => draw());
+
   document.getElementById('b-show-reading').addEventListener('change', draw);
   document.getElementById('b-transparent').addEventListener('change', () => {
     updateBgClass('b-checker', isChecked('b-transparent'));
     draw();
+  });
+
+  // Beam 1/2: reading step = step size
+  ['b1','b2'].forEach(prefix => {
+    const stepEl    = document.getElementById(`${prefix}-step`);
+    const readingEl = document.getElementById(`${prefix}-reading`);
+    if (stepEl && readingEl) {
+      stepEl.addEventListener('input', () => { readingEl.step = stepEl.value; });
+    }
   });
 
   function nearMultiple(v, mult, tol) {
@@ -54,8 +57,8 @@ const balance = (() => {
   }
 
   function draw() {
-    const zoom        = numVal('b-zoom', 100) / 100;
-    const fontSize    = numVal('b-fontsize', 13);
+    const zoom        = numVal('b-zoom-num', numVal('b-zoom-range', 100)) / 100;
+    const fontSize    = numVal('b-fontsize-num', numVal('b-fontsize-range', 13));
     const showRead    = isChecked('b-show-reading');
     const transparent = isChecked('b-transparent');
 
@@ -64,12 +67,32 @@ const balance = (() => {
     const b3step = Math.max(0.001, numVal('b3-step', 1));
 
     const beamConfigs = [
-      { min: numVal('b1-min',0),   max: numVal('b1-max',100), step: b1step, reading: numVal('b1-reading',0),   subs: 5 },
-      { min: numVal('b2-min',0),   max: numVal('b2-max',500), step: b2step, reading: numVal('b2-reading',100), subs: 5 },
-      { min: numVal('b3-min',0),   max: numVal('b3-max',10),  step: b3step, reading: numVal('b3-reading',3.5), subs: Math.max(1, Math.round(numVal('b3-subs',10))) },
+      {
+        min:     Math.max(0, numVal('b1-min', 0)),
+        max:     numVal('b1-max', 100),
+        step:    b1step,
+        reading: Math.max(0, numVal('b1-reading', 0)),
+        subs:    1,          // NO subdivisions on beam 1
+        noSubs:  true,
+      },
+      {
+        min:     Math.max(0, numVal('b2-min', 0)),
+        max:     numVal('b2-max', 500),
+        step:    b2step,
+        reading: Math.max(0, numVal('b2-reading', 100)),
+        subs:    1,          // NO subdivisions on beam 2
+        noSubs:  true,
+      },
+      {
+        min:     Math.max(0, numVal('b3-min', 0)),
+        max:     numVal('b3-max', 10),
+        step:    b3step,
+        reading: Math.max(0, numVal('b3-reading', 3.5)),
+        subs:    Math.max(1, Math.round(numVal('b3-subs', 10))),
+        noSubs:  false,
+      },
     ];
 
-    // Canvas = full image scaled by zoom
     canvas.width  = Math.round(IW * zoom);
     canvas.height = Math.round(IH * zoom);
 
@@ -99,12 +122,14 @@ const balance = (() => {
       if (range <= 0) return;
 
       const pxPerUnit  = bWidth / range;
-      const subStep    = cfg.step / cfg.subs;
-      const decPlaces  = Math.max(0, -Math.floor(Math.log10(subStep)));
 
+      // Tick heights downward from topY
       const majorTickH = beamH * 0.55;
       const medTickH   = beamH * 0.36;
       const minTickH   = beamH * 0.22;
+
+      // Label Y: shifted into the silver/lower area of beam
+      const labelY = topY + beamH * bd.labelFrac + fontSize;
 
       ctx.save();
       ctx.strokeStyle  = '#111';
@@ -114,31 +139,41 @@ const balance = (() => {
       ctx.textAlign    = 'center';
       ctx.textBaseline = 'top';
 
-      let tickIdx = 0;
-      let v = cfg.min;
-      while (v <= cfg.max + subStep * 0.001) {
-        const x = bLeft + (v - cfg.min) * pxPerUnit;
-        if (x > bRight + 1) break;
-
-        const isMajor = nearMultiple(v, cfg.step,      subStep * 0.01);
-        const isMid   = !isMajor && nearMultiple(v, cfg.step / 2, subStep * 0.01);
-        const tH      = isMajor ? majorTickH : isMid ? medTickH : minTickH;
-
-        ctx.beginPath();
-        ctx.moveTo(x, topY);
-        ctx.lineTo(x, topY + tH);
-        ctx.stroke();
-
-        if (isMajor) {
-          ctx.fillText(parseFloat(v.toFixed(decPlaces)), x, topY + majorTickH + 2);
+      if (cfg.noSubs) {
+        // Beams 1 & 2: only major ticks at each step, no subdivisions at all
+        const numSteps  = Math.round(range / cfg.step);
+        const decPlaces = Math.max(0, -Math.floor(Math.log10(cfg.step)));
+        for (let i = 0; i <= numSteps; i++) {
+          const v = cfg.min + i * cfg.step;
+          if (v > cfg.max + cfg.step * 0.001) break;
+          const x = bLeft + (v - cfg.min) * pxPerUnit;
+          if (x > bRight + 1) break;
+          ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(x, topY + majorTickH); ctx.stroke();
+          ctx.fillText(parseFloat(v.toFixed(decPlaces)), x, labelY);
         }
-
-        tickIdx++;
-        v = parseFloat((cfg.min + tickIdx * subStep).toFixed(10));
+      } else {
+        // Beam 3: major ticks + subdivisions
+        const subStep   = cfg.step / cfg.subs;
+        const decPlaces = Math.max(0, -Math.floor(Math.log10(subStep)));
+        let tickIdx = 0;
+        let v = cfg.min;
+        while (v <= cfg.max + subStep * 0.001) {
+          const x = bLeft + (v - cfg.min) * pxPerUnit;
+          if (x > bRight + 1) break;
+          const isMajor = nearMultiple(v, cfg.step,      subStep * 0.01);
+          const isMid   = !isMajor && nearMultiple(v, cfg.step / 2, subStep * 0.01);
+          const tH      = isMajor ? majorTickH : isMid ? medTickH : minTickH;
+          ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(x, topY + tH); ctx.stroke();
+          if (isMajor) {
+            ctx.fillText(parseFloat(v.toFixed(decPlaces)), x, labelY);
+          }
+          tickIdx++;
+          v = parseFloat((cfg.min + tickIdx * subStep).toFixed(10));
+        }
       }
       ctx.restore();
 
-      // Rider
+      // ── Rider ──
       const clampedReading = Math.max(cfg.min, Math.min(cfg.max, cfg.reading));
       const riderX = bLeft + (clampedReading - cfg.min) * pxPerUnit;
 
@@ -149,58 +184,42 @@ const balance = (() => {
 
         ctx.save();
         const rg = ctx.createLinearGradient(riderX - rW/2, 0, riderX + rW/2, 0);
-        rg.addColorStop(0,   '#888');
-        rg.addColorStop(0.3, '#ddd');
-        rg.addColorStop(0.7, '#ddd');
-        rg.addColorStop(1,   '#777');
-        ctx.fillStyle   = rg;
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth   = Math.max(0.8, 1.2 * zoom);
+        rg.addColorStop(0, '#888'); rg.addColorStop(0.3, '#ddd');
+        rg.addColorStop(0.7, '#ddd'); rg.addColorStop(1, '#777');
+        ctx.fillStyle = rg; ctx.strokeStyle = '#333';
+        ctx.lineWidth = Math.max(0.8, 1.2 * zoom);
         ctx.beginPath();
         ctx.roundRect(riderX - rW/2, rY, rW, rH, 2 * zoom);
-        ctx.fill();
-        ctx.stroke();
+        ctx.fill(); ctx.stroke();
 
-        // Center notch
-        ctx.strokeStyle = '#222';
-        ctx.lineWidth   = Math.max(0.8, 1.5 * zoom);
-        ctx.beginPath();
-        ctx.moveTo(riderX, rY + 2);
-        ctx.lineTo(riderX, rY + rH - 2);
-        ctx.stroke();
+        ctx.strokeStyle = '#222'; ctx.lineWidth = Math.max(0.8, 1.5 * zoom);
+        ctx.beginPath(); ctx.moveTo(riderX, rY + 2); ctx.lineTo(riderX, rY + rH - 2); ctx.stroke();
 
-        // Downward arrow from rider bottom to top rail
         const arrowBaseY = rY;
         const arrowTipY  = topY - 3 * zoom;
         const aw = Math.max(5, 7 * zoom);
-        ctx.fillStyle   = '#c00';
-        ctx.strokeStyle = '#c00';
-        ctx.lineWidth   = Math.max(1, 1.5 * zoom);
-        ctx.beginPath();
-        ctx.moveTo(riderX, arrowBaseY);
-        ctx.lineTo(riderX, arrowTipY + aw);
-        ctx.stroke();
+        ctx.fillStyle = '#c00'; ctx.strokeStyle = '#c00';
+        ctx.lineWidth = Math.max(1, 1.5 * zoom);
+        ctx.beginPath(); ctx.moveTo(riderX, arrowBaseY); ctx.lineTo(riderX, arrowTipY + aw); ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(riderX - aw, arrowTipY + aw);
         ctx.lineTo(riderX + aw, arrowTipY + aw);
         ctx.lineTo(riderX,      arrowTipY + aw * 2);
-        ctx.closePath();
-        ctx.fill();
-
+        ctx.closePath(); ctx.fill();
         ctx.restore();
       }
 
-      // Reading label above rider arrow
+      // Reading label above rider
       if (showRead) {
+        const subStep   = cfg.noSubs ? cfg.step : cfg.step / cfg.subs;
+        const decPlaces = Math.max(0, -Math.floor(Math.log10(subStep)));
         ctx.save();
-        ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-        ctx.fillStyle    = '#c00';
-        ctx.textAlign    = 'center';
-        ctx.textBaseline = 'bottom';
+        ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+        ctx.fillStyle = '#c00'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
         ctx.fillText(
           parseFloat(clampedReading.toFixed(decPlaces)),
           riderX,
-          bd.topRail * zoom - 3 * zoom - fontSize * 0.5 - 4
+          bd.topRail * zoom - 3 * zoom - 4
         );
         ctx.restore();
       }
