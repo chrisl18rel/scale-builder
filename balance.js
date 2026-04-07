@@ -3,15 +3,17 @@
 const balance = (() => {
   const IW = 1600, IH = 872;
 
-  // Beam geometry in 1600×872 image
-  // topRail / botRail = the dark rail lines bounding each beam
-  // The silvery label area is the LOWER portion of each beam body
-  // Shift labels down by using a labelOffsetFrac of the beam height
+  // Beam geometry calibrated from pixel scan of 1600×872 image
+  // topRail: top of dark rail (used for arrow tip reference)
+  // silverTop: first row of silver/white beam body (where ticks start)
+  // botRail: bottom dark rail
   const BEAM_DEFS = [
-    { topRail:  97, botRail: 233, labelFrac: 0.55 },
-    { topRail: 341, botRail: 528, labelFrac: 0.65 },  // shifted down into silver area
-    { topRail: 624, botRail: 778, labelFrac: 0.65 },  // shifted down into silver area
+    { topRail:  97, silverTop: 102, botRail: 233, labelFrac: 0.55 },
+    { topRail: 340, silverTop: 373, botRail: 528, labelFrac: 0.65 },
+    { topRail: 623, silverTop: 656, botRail: 778, labelFrac: 0.65 },
   ];
+  // Beam 1 rider top should be at y=58 in original image
+  const BEAM1_RIDER_TOP = 58;
   const B_LEFT  = 116;
   const B_RIGHT = 1446;
 
@@ -144,22 +146,24 @@ const balance = (() => {
     const bWidth = bRight - bLeft;
 
     BEAM_DEFS.forEach((bd, idx) => {
-      const cfg    = beamConfigs[idx];
-      const topY   = bd.topRail * zoom;
-      const botY   = bd.botRail * zoom;
-      const beamH  = botY - topY;
-      const range  = cfg.max - cfg.min;
+      const cfg       = beamConfigs[idx];
+      const topY      = bd.topRail   * zoom;  // dark rail top (used for arrow reference)
+      const silverY   = bd.silverTop * zoom;  // top of silver area (where ticks start)
+      const botY      = bd.botRail   * zoom;
+      const beamH     = botY - topY;          // full beam height
+      const silverH   = botY - silverY;       // height of silver tick area
+      const range     = cfg.max - cfg.min;
       if (range <= 0) return;
 
       const pxPerUnit  = bWidth / range;
 
-      // Tick heights downward from topY
-      const majorTickH = beamH * 0.55;
-      const medTickH   = beamH * 0.36;
-      const minTickH   = beamH * 0.22;
+      // Tick heights downward from silverY (into silver area, not dark rail)
+      const majorTickH = silverH * 0.65;
+      const medTickH   = silverH * 0.42;
+      const minTickH   = silverH * 0.26;
 
-      // Label Y: shifted into the silver/lower area of beam + user-controlled Y offset
-      const labelY = topY + beamH * bd.labelFrac + fontSize + scaleNumShift[idx];
+      // Label Y: relative to silverY for proper placement in silver area
+      const labelY = silverY + silverH * bd.labelFrac + fontSize + scaleNumShift[idx];
 
       ctx.save();
       ctx.strokeStyle  = '#111';
@@ -178,7 +182,7 @@ const balance = (() => {
           if (v > cfg.max + cfg.step * 0.001) break;
           const x = bLeft + (v - cfg.min) * pxPerUnit;
           if (x > bRight + 1) break;
-          ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(x, topY + majorTickH); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x, silverY); ctx.lineTo(x, silverY + majorTickH); ctx.stroke();
           ctx.fillText(parseFloat(v.toFixed(decPlaces)), x, labelY);
         }
       } else {
@@ -193,7 +197,7 @@ const balance = (() => {
           const isMajor = nearMultiple(v, cfg.step,      subStep * 0.01);
           const isMid   = !isMajor && nearMultiple(v, cfg.step / 2, subStep * 0.01);
           const tH      = isMajor ? majorTickH : isMid ? medTickH : minTickH;
-          ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(x, topY + tH); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x, silverY); ctx.lineTo(x, silverY + tH); ctx.stroke();
           if (isMajor) {
             ctx.fillText(parseFloat(v.toFixed(decPlaces)), x, labelY);
           }
@@ -209,8 +213,9 @@ const balance = (() => {
 
       if (riderX >= bLeft - 5 && riderX <= bRight + 5) {
         const rW = Math.max(14, 22 * zoom);
-        const rH = beamH * 0.75;
-        const rY = topY + beamH * 0.12;
+        // Beam 1 rider top calibrated to y=58 in original image; others sit at silver area top
+        const rY = (idx === 0) ? BEAM1_RIDER_TOP * zoom : silverY;
+        const rH = botY - rY;
 
         ctx.save();
         const rg = ctx.createLinearGradient(riderX - rW/2, 0, riderX + rW/2, 0);
