@@ -35,7 +35,6 @@
             <div class="group-title">SCALE SETTINGS</div>
             <label>Unit Label</label>
             <input type="text" id="r-unit" value="cm" />
-
             <div class="two-col">
               <div>
                 <label>Major Division</label>
@@ -46,7 +45,6 @@
                 <input type="number" id="r-subs" value="10" min="1" step="1" />
               </div>
             </div>
-
             <label>Start Value</label>
             <input type="number" id="r-start" value="0" step="0.01" />
           </div>
@@ -61,7 +59,7 @@
             <div class="group-title">ARROW STYLE</div>
             <div class="btn-group">
               <button class="style-btn active" id="r-arrow-pointer" onclick="ruler.setArrowStyle('pointer')">▼ Pointer Only</button>
-              <button class="style-btn" id="r-arrow-line" onclick="ruler.setArrowStyle('line')">▼— Pointer + Line</button>
+              <button class="style-btn" id="r-arrow-line" onclick="ruler.setArrowStyle('line')">▼| Pointer + Line</button>
             </div>
           </div>
 
@@ -98,12 +96,12 @@
             </label>
             <button class="export-btn" onclick="ruler.exportPNG()">⬇ Export PNG</button>
           </div>
-        </aside>
 
+        </aside>
         <div class="preview-panel">
           <div class="preview-label">Live Preview — scroll right if needed</div>
           <div class="canvas-scroll-wrapper">
-            <div id="r-checker" class="checker-bg">
+            <div id="r-checker" class="checker-bg white-bg">
               <canvas id="ruler-canvas"></canvas>
             </div>
           </div>
@@ -128,7 +126,6 @@
                 <input type="text" id="c-unit" value="mL" />
               </div>
             </div>
-
             <div class="two-col">
               <div>
                 <label>Major Division</label>
@@ -180,12 +177,12 @@
             </label>
             <button class="export-btn" onclick="cylinder.exportPNG()">⬇ Export PNG</button>
           </div>
-        </aside>
 
+        </aside>
         <div class="preview-panel">
           <div class="preview-label">Live Preview — scroll down if needed</div>
           <div class="canvas-scroll-wrapper">
-            <div id="c-checker" class="checker-bg">
+            <div id="c-checker" class="checker-bg white-bg">
               <canvas id="cylinder-canvas"></canvas>
             </div>
           </div>
@@ -230,6 +227,11 @@
             </div>
             <label>Step Size</label>
             <input type="number" id="b3-step" value="1" step="0.1" min="0.01" />
+            <label>Subdivisions between steps</label>
+            <div class="slider-row">
+              <input type="range" id="b3-subs" min="1" max="20" value="10" />
+              <span id="b3-subs-val" class="slider-val">10</span>
+            </div>
             <label>Reading</label>
             <input type="number" id="b3-reading" value="3.5" step="0.1" />
           </div>
@@ -262,12 +264,12 @@
             </label>
             <button class="export-btn" onclick="balance.exportPNG()">⬇ Export PNG</button>
           </div>
-        </aside>
 
+        </aside>
         <div class="preview-panel">
           <div class="preview-label">Live Preview — scroll right if needed</div>
           <div class="canvas-scroll-wrapper">
-            <div id="b-checker" class="checker-bg">
+            <div id="b-checker" class="checker-bg white-bg">
               <canvas id="balance-canvas"></canvas>
             </div>
           </div>
