@@ -88,3 +88,14 @@ function updateBgClass(wrapperId, transparent) {
     el.classList.add('white-bg');
   }
 }
+// TEMP: click anywhere on a canvas to log pixel coordinates
+document.querySelectorAll('canvas').forEach(c => {
+  c.addEventListener('click', e => {
+    const rect = c.getBoundingClientRect();
+    const scaleX = c.width  / rect.width;
+    const scaleY = c.height / rect.height;
+    const x = Math.round((e.clientX - rect.left) * scaleX);
+    const y = Math.round((e.clientY - rect.top)  * scaleY);
+    console.log(`x: ${x}, y: ${y}  (canvas: ${c.width}×${c.height})`);
+  });
+});
