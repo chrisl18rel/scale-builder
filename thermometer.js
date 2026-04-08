@@ -4,16 +4,16 @@ const thermometer = (() => {
   // Image dimensions: 158×872
   const IW = 158, IH = 872;
 
-  // Tube inner bounds (calibrated from pixel scan)
-  const TUBE_LEFT  = 51;
-  const TUBE_RIGHT = 108;
-  const TUBE_TOP   = 40;   // top of mercury column (below loop)
+  // Tube/bulb bounds — calibrated from pixel scan of 158×872 image
+  const TUBE_LEFT  = 51;   // inner left wall
+  const TUBE_RIGHT = 110;  // inner right wall
+  const TUBE_TOP   = 40;   // top of mercury column
   const TUBE_BOT   = 725;  // where tube meets bulb
 
-  // Bulb center coordinates
-  const BULB_CX    = 79;
-  const BULB_CY    = 808;
-  const BULB_R     = 52;   // approx inner bulb radius
+  // Bulb geometry — center x=80, widest inner radius at y=800
+  const BULB_CX    = 80;
+  const BULB_CY    = 800;
+  const BULB_R     = 67;   // inner radius at widest point
 
   let img = null;
 
@@ -111,69 +111,45 @@ const thermometer = (() => {
     const fillY        = tickValToY(reading);
     const clampedFillY = Math.max(tTop + 1, Math.min(tBot, fillY));
 
-    // ── Draw thermometer image + liquid ──
-    // White bg mode: image first, then multiply-blend liquid (red × white glass = red visible)
-    // Transparent mode: liquid first, then image with bg removed (liquid shows through)
-    if (!transparent) {
-      // Draw image onto white canvas
-      if (img) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    // ── Draw liquid first, then image with white bg removed ──
+    // This lets the red liquid show through the glass regardless of transparency mode.
+    // The white canvas fill (if not transparent) provides the page background.
 
-      // Multiply blend liquid over the image
+    const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
+    liquidGrad.addColorStop(0,    'rgba(200, 30,  30, 0.95)');
+    liquidGrad.addColorStop(0.2,  'rgba(230, 60,  60, 0.90)');
+    liquidGrad.addColorStop(0.5,  'rgba(240, 80,  80, 0.88)');
+    liquidGrad.addColorStop(0.8,  'rgba(230, 60,  60, 0.90)');
+    liquidGrad.addColorStop(1,    'rgba(200, 30,  30, 0.95)');
+
+    // Bulb — always filled
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
+    ctx.fillStyle = liquidGrad;
+    ctx.fill();
+    ctx.restore();
+
+    // Tube — rounded bottom corners, fills from clampedFillY down to TUBE_BOT
+    if (clampedFillY < tBot) {
       ctx.save();
-      ctx.globalCompositeOperation = 'multiply';
-
-      const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
-      liquidGrad.addColorStop(0,    'rgb(210, 40,  40)');
-      liquidGrad.addColorStop(0.25, 'rgb(240, 80,  80)');
-      liquidGrad.addColorStop(0.75, 'rgb(240, 80,  80)');
-      liquidGrad.addColorStop(1,    'rgb(200, 30,  30)');
-
+      const cornerR = tW * 0.15;
       ctx.beginPath();
-      ctx.arc(bCX, bCY, bR * 0.82, 0, Math.PI * 2);
-      ctx.fillStyle = liquidGrad; ctx.fill();
-
-      if (clampedFillY < tBot) {
-        const cornerR = tW * 0.2;
-        ctx.beginPath();
-        ctx.moveTo(tLeft, clampedFillY);
-        ctx.lineTo(tLeft, tBot - cornerR);
-        ctx.quadraticCurveTo(tLeft,  tBot, tLeft  + cornerR, tBot);
-        ctx.lineTo(tRight - cornerR, tBot);
-        ctx.quadraticCurveTo(tRight, tBot, tRight, tBot - cornerR);
-        ctx.lineTo(tRight, clampedFillY);
-        ctx.closePath();
-        ctx.fillStyle = liquidGrad; ctx.fill();
-      }
+      ctx.moveTo(tLeft,  clampedFillY);
+      ctx.lineTo(tLeft,  tBot - cornerR);
+      ctx.quadraticCurveTo(tLeft,  tBot, tLeft  + cornerR, tBot);
+      ctx.lineTo(tRight - cornerR, tBot);
+      ctx.quadraticCurveTo(tRight, tBot, tRight, tBot - cornerR);
+      ctx.lineTo(tRight, clampedFillY);
+      ctx.closePath();
+      ctx.fillStyle = liquidGrad;
+      ctx.fill();
       ctx.restore();
+    }
 
-    } else {
-      // Transparent mode: liquid first, image on top with white bg stripped
-      const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
-      liquidGrad.addColorStop(0,    'rgba(210, 40,  40, 0.92)');
-      liquidGrad.addColorStop(0.25, 'rgba(240, 80,  80, 0.85)');
-      liquidGrad.addColorStop(0.75, 'rgba(240, 80,  80, 0.85)');
-      liquidGrad.addColorStop(1,    'rgba(200, 30,  30, 0.92)');
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(bCX, bCY, bR * 0.82, 0, Math.PI * 2);
-      ctx.fillStyle = liquidGrad; ctx.fill();
-
-      if (clampedFillY < tBot) {
-        const cornerR = tW * 0.2;
-        ctx.beginPath();
-        ctx.moveTo(tLeft, clampedFillY);
-        ctx.lineTo(tLeft, tBot - cornerR);
-        ctx.quadraticCurveTo(tLeft,  tBot, tLeft  + cornerR, tBot);
-        ctx.lineTo(tRight - cornerR, tBot);
-        ctx.quadraticCurveTo(tRight, tBot, tRight, tBot - cornerR);
-        ctx.lineTo(tRight, clampedFillY);
-        ctx.closePath();
-        ctx.fillStyle = liquidGrad; ctx.fill();
-      }
-      ctx.restore();
-
-      if (img) drawImageWithTransparentBg(ctx, img, 0, 0, canvas.width, canvas.height, 240);
+    // Draw thermometer image on top — always strip white bg so liquid shows through
+    if (img) {
+      drawImageWithTransparentBg(ctx, img, 0, 0, canvas.width, canvas.height, 230);
     }
 
     // ── Ticks on RIGHT side of tube ──
