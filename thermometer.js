@@ -7,13 +7,13 @@ const thermometer = (() => {
   // Tube/bulb bounds — calibrated from pixel scan of 158×872 image
   const TUBE_LEFT  = 51;   // inner left wall
   const TUBE_RIGHT = 110;  // inner right wall
-  const TUBE_TOP   = 40;   // top of mercury column
+  const TUBE_TOP   = 78;   // top of scale — calibrated by user click (y=78 in original image)
   const TUBE_BOT   = 725;  // where tube meets bulb
 
-  // Bulb geometry — center x=80, shifted up slightly to close gap at bulb top
+  // Bulb geometry — center x=80, widest inner radius at y=800
   const BULB_CX    = 80;
-  const BULB_CY    = 800;  // bulb center
-  const BULB_R     = 76;   // slightly larger radius to close white gap at bulb top
+  const BULB_CY    = 800;
+  const BULB_R     = 72;   // fills full bulb interior
 
   let img = null;
 
