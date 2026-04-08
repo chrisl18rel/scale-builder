@@ -88,6 +88,32 @@ function updateBgClass(wrapperId, transparent) {
   }
 }
 
+/**
+ * Draw an image onto ctx at the given position/size, making near-white
+ * background pixels transparent. Used when transparent=true on instruments
+ * whose source images have opaque white backgrounds.
+ * threshold: pixels with r,g,b all above this value become transparent (0-255).
+ */
+function drawImageWithTransparentBg(ctx, img, dx, dy, dw, dh, threshold = 240) {
+  // Draw image to a temp offscreen canvas
+  const off = document.createElement('canvas');
+  off.width  = dw;
+  off.height = dh;
+  const octx = off.getContext('2d');
+  octx.drawImage(img, 0, 0, dw, dh);
+
+  // Make near-white pixels transparent
+  const idata = octx.getImageData(0, 0, dw, dh);
+  const d = idata.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i] >= threshold && d[i+1] >= threshold && d[i+2] >= threshold) {
+      d[i+3] = 0;
+    }
+  }
+  octx.putImageData(idata, 0, 0);
+  ctx.drawImage(off, dx, dy);
+}
+
 // Wire beam 3 subs slider label
 const b3subsSlider = document.getElementById('b3-subs');
 const b3subsLabel  = document.getElementById('b3-subs-val');
