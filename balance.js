@@ -167,10 +167,10 @@ const balance = (() => {
 
       const pxPerUnit  = bWidth / range;
 
-      // Tick heights downward from silverY (into silver area, not dark rail)
-      const majorTickH = silverH * 0.40;
-      const medTickH   = silverH * 0.26;
-      const minTickH   = silverH * 0.16;
+      // Tick heights: major tick reaches at most halfway down the silver area
+      const majorTickH = silverH * 0.30;
+      const medTickH   = silverH * 0.20;
+      const minTickH   = silverH * 0.12;
 
       // Label Y: relative to silverY for proper placement in silver area
       const labelY = silverY + silverH * bd.labelFrac + fontSize + scaleNumShift[idx];
