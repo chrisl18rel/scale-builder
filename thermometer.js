@@ -116,18 +116,10 @@ const thermometer = (() => {
     // The white canvas fill (if not transparent) provides the page background.
 
     // ── Red liquid ──
-    // Neck profile: exact inner bounds from pixel scan (at zoom=1)
-    // Left points going down, then right points going up = closed polygon
-    const neckProfile = [
-      [51,725],[51,726],[51,727],[51,728],[51,729],[50,730],[50,731],
-      [49,732],[48,733],[47,734],[46,735],[45,736],[44,737],[42,738],
-      [41,739],[39,740],[38,741],[37,742],[36,743],[35,744],[34,745],
-      [33,746],[32,747],[31,748],[30,749],[29,750],[29,751],[28,752],
-      [27,753],[26,754],[26,755],[25,756],[24,757],[24,758],[23,759],
-      [23,760],[22,761],[21,762],[21,763],[20,764],[20,765],[20,766],
-      [19,767],[19,768],[18,769],[18,770],[18,771],[17,772],[17,773],
-      [17,774],[16,775]
-    ];
+    // Neck: exact left AND right inner bounds from pixel scan, no mirroring math
+    const neckL = [51,51,51,51,51,50,50,49,48,47,46,45,44,42,41,39,38,37,36,35,34,33,32,31,30,29,29,28,27,26,26,25,24,24,23,23,22,21,21,20,20,20,19,19,18,18,18,17,17,17,16];
+    const neckR = [110,110,110,111,111,111,112,113,113,114,116,117,118,120,121,122,124,125,126,127,128,129,130,131,132,133,133,134,135,136,136,137,138,138,139,139,140,140,141,141,142,142,142,143,143,144,144,144,145,145,145];
+    // neckL[0] / neckR[0] = y=725, neckL[50] / neckR[50] = y=775
 
     const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
     liquidGrad.addColorStop(0,    'rgba(200, 30,  30, 0.95)');
@@ -138,40 +130,31 @@ const thermometer = (() => {
 
     ctx.save();
 
-    // Tube body with rounded bottom (down to TUBE_BOT)
+    // 1. Tube body rect (flat top at clampedFillY, straight down to TUBE_BOT)
     if (clampedFillY < tBot) {
-      const cornerR = tW * 0.15;
       ctx.beginPath();
-      ctx.moveTo(tLeft,  clampedFillY);
-      ctx.lineTo(tLeft,  tBot - cornerR);
-      ctx.quadraticCurveTo(tLeft,  tBot, tLeft  + cornerR, tBot);
-      ctx.lineTo(tRight - cornerR, tBot);
-      ctx.quadraticCurveTo(tRight, tBot, tRight, tBot - cornerR);
-      ctx.lineTo(tRight, clampedFillY);
-      ctx.closePath();
+      ctx.rect(tLeft, clampedFillY, tW, tBot - clampedFillY);
       ctx.fillStyle = liquidGrad;
       ctx.fill();
     }
 
-    // Neck polygon: traces exact widening inner shape from TUBE_BOT down to bulb
+    // 2. Neck polygon — left side down then right side up, using scanned coords
     ctx.beginPath();
-    // Left side going down
-    ctx.moveTo(neckProfile[0][0] * zoom, neckProfile[0][1] * zoom);
-    for (let i = 1; i < neckProfile.length; i++) {
-      ctx.lineTo(neckProfile[i][0] * zoom, neckProfile[i][1] * zoom);
+    ctx.moveTo(neckL[0] * zoom, 725 * zoom);
+    for (let i = 0; i < neckL.length; i++) {
+      ctx.lineTo(neckL[i] * zoom, (725 + i) * zoom);
     }
-    // Bottom of neck (across)
-    const lastY = neckProfile[neckProfile.length - 1][1];
-    ctx.lineTo((158 - neckProfile[neckProfile.length - 1][0]) * zoom, lastY * zoom);
-    // Right side going back up (mirror of left)
-    for (let i = neckProfile.length - 1; i >= 0; i--) {
-      ctx.lineTo((158 - neckProfile[i][0]) * zoom, neckProfile[i][1] * zoom);
+    // across bottom of neck
+    ctx.lineTo(neckR[neckR.length - 1] * zoom, (725 + neckR.length - 1) * zoom);
+    // right side back up
+    for (let i = neckR.length - 1; i >= 0; i--) {
+      ctx.lineTo(neckR[i] * zoom, (725 + i) * zoom);
     }
     ctx.closePath();
     ctx.fillStyle = liquidGrad;
     ctx.fill();
 
-    // Bulb circle — inner radius 67px, center (80, 800)
+    // 3. Bulb circle — use inner radius 67px at center (80, 800)
     ctx.beginPath();
     ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
     ctx.fillStyle = liquidGrad;
