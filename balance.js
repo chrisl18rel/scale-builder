@@ -14,7 +14,7 @@ const balance = (() => {
     { topRail: 623, silverTop: 656, silverBot: 777, botRail: 778, labelFrac: 0.65 },
   ];
   const B_LEFT  = 116;
-  const B_RIGHT = 1446;
+  const B_RIGHT = 1390;  // conservative right bound — keeps ticks inside all three beams
 
   let img = null;
 
