@@ -16,13 +16,14 @@
         <p>Generate measurement instrument images for science class</p>
       </div>
     </div>
-    <div class="app-version">v3.6</div>
+    <div class="app-version">v3.3</div>
   </header>
 
   <nav class="tab-nav">
     <button class="tab-btn active" data-tab="ruler">📏 Ruler</button>
     <button class="tab-btn" data-tab="cylinder">🧪 Graduated Cylinder</button>
     <button class="tab-btn" data-tab="balance">⚖️ Triple Beam Balance</button>
+    <button class="tab-btn" data-tab="therm">🌡️ Thermometer</button>
   </nav>
 
   <main class="app-body">
@@ -484,6 +485,121 @@
       </div>
     </section>
 
+    <!-- ═══════════════════ THERMOMETER TAB ═══════════════════ -->
+    <section id="tab-therm" class="tab-panel">
+      <div class="panel-layout">
+        <aside class="controls-panel">
+
+          <div class="control-group">
+            <div class="group-title">SCALE SETTINGS</div>
+            <label>Unit Preset</label>
+            <select id="t-unit-preset" style="background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px;padding:5px 8px;width:100%;outline:none;">
+              <option value="C">Celsius (°C)</option>
+              <option value="F">Fahrenheit (°F)</option>
+              <option value="K">Kelvin (K)</option>
+            </select>
+            <label>Unit Label</label>
+            <input type="text" id="t-unit" value="°C" />
+            <div class="two-col">
+              <div>
+                <label>Min Value</label>
+                <input type="number" id="t-min" value="-10" step="1" />
+              </div>
+              <div>
+                <label>Max Value</label>
+                <input type="number" id="t-max" value="110" step="1" />
+              </div>
+            </div>
+            <div class="two-col">
+              <div>
+                <label>Major Division</label>
+                <input type="number" id="t-major" value="10" min="0.1" step="0.1" />
+              </div>
+              <div>
+                <label>Subdivisions</label>
+                <input type="number" id="t-subs" value="5" min="1" step="1" />
+              </div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">READING</div>
+            <label>Reading Value</label>
+            <input type="number" id="t-reading" value="25" step="0.1" />
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">DISPLAY</div>
+
+            <div class="slider-zoom">
+              <label>Image Zoom (%)</label>
+              <div class="slider-input-row">
+                <input type="range" id="t-zoom-range" min="20" max="300" value="100" />
+                <input type="number" id="t-zoom-num" value="100" min="20" max="300" step="1" />
+              </div>
+            </div>
+
+            <div class="slider-tick">
+              <label>Scale Stretch (px/major div)</label>
+              <div class="slider-input-row">
+                <input type="range" id="t-tick-range" min="5" max="200" value="40" />
+                <input type="number" id="t-tick-num" value="40" min="5" max="200" step="1" />
+              </div>
+            </div>
+
+            <div class="slider-font">
+              <label>Text Size (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="t-fontsize-range" min="6" max="36" value="12" />
+                <input type="number" id="t-fontsize-num" value="12" min="6" max="36" step="1" />
+              </div>
+            </div>
+
+            <div class="display-divider"></div>
+
+            <div class="toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" id="t-show-reading" checked />
+                Show reading value
+              </label>
+            </div>
+
+            <div class="slider-offset">
+              <label>Reading Label Offset X (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="t-lbl-x-range" min="-150" max="150" value="0" />
+                <input type="number" id="t-lbl-x-num" value="0" min="-150" max="150" step="1" />
+              </div>
+              <label>Reading Label Offset Y (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="t-lbl-y-range" min="-150" max="150" value="0" />
+                <input type="number" id="t-lbl-y-num" value="0" min="-150" max="150" step="1" />
+              </div>
+            </div>
+
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">EXPORT</div>
+            <label class="toggle-label">
+              <input type="checkbox" id="t-transparent" />
+              Transparent background
+            </label>
+            <button class="export-btn" onclick="thermometer.exportPNG()">⬇ Export PNG</button>
+          </div>
+
+        </aside>
+        <div class="preview-panel">
+          <div class="preview-label">Live Preview — scroll down if needed</div>
+          <div class="canvas-scroll-wrapper">
+            <div id="t-checker" class="checker-bg white-bg">
+              <canvas id="therm-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <script src="images.js"></script>
@@ -491,5 +607,6 @@
   <script src="ruler.js"></script>
   <script src="cylinder.js"></script>
   <script src="balance.js"></script>
+  <script src="thermometer.js"></script>
 </body>
 </html>
