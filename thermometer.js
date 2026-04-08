@@ -35,6 +35,9 @@ const thermometer = (() => {
   bindSliderWithInput('t-lbl-x-range',    't-lbl-x-num',    () => draw());
   bindSliderWithInput('t-lbl-y-range',    't-lbl-y-num',    () => draw());
   bindSliderWithInput('t-tick-len-range', 't-tick-len-num', () => draw());
+  bindSliderWithInput('t-dash-thick-range', 't-dash-thick-num', () => draw());
+  bindSliderWithInput('t-dash-len-range',   't-dash-len-num',   () => draw());
+  document.getElementById('t-dash-color').addEventListener('input', draw);
 
   document.getElementById('t-show-reading').addEventListener('change', draw);
   document.getElementById('t-transparent').addEventListener('change', () => {
@@ -114,10 +117,11 @@ const thermometer = (() => {
     const fillY        = tickValToY(reading);
     const clampedFillY = Math.max(tTop + 1, Math.min(tBot, fillY));
 
-    // All image pixels are fully opaque (a=255) — destination-over won't work.
-    // Solution: draw image first, then multiply-blend red CLIPPED to tube+bulb shape.
-    // Multiply: red × light-glass-interior = red visible; outside clip = untouched.
+    const dashColor  = strVal('t-dash-color', '#222222');
+    const dashThick  = getVal('t-dash-thick-range', 't-dash-thick-num', 1.5);
+    const dashLenMult = getVal('t-dash-len-range', 't-dash-len-num', 1.0);
 
+    // Solution: draw image first, then multiply-blend red CLIPPED to tube+bulb shape.
     if (img) {
       ctx.drawImage(img, 0, 0, Math.round(IW * zoom), Math.round(IH * zoom));
     }
@@ -130,19 +134,24 @@ const thermometer = (() => {
 
     ctx.save();
 
-    // Clip to the tube + neck + bulb shape so multiply never touches outside
+    // Clip region: tube rect + full-width bulb bounding box + bulb circle
+    // Using a wide rect from bulb top to canvas bottom to cover the neck+bulb fully
+    const neckBot   = 775 * zoom;
+    const bulbLeft  = (BULB_CX - BULB_R) * zoom;
+    const bulbTop   = (BULB_CY - BULB_R) * zoom;
+    const bulbDiam  = BULB_R * 2 * zoom;
     ctx.beginPath();
-    // Tube rect from fill level to TUBE_BOT
-    const neckBot = 775 * zoom;
+    // Tube rect (narrow, top portion of liquid)
     ctx.rect(tLeft, clampedFillY, tW, neckBot - clampedFillY);
+    // Wide rect covering neck + bulb area (let the arc clip the actual shape)
+    ctx.rect(bulbLeft, neckBot, bulbDiam, canvas.height - neckBot);
     // Bulb circle
     ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
     ctx.clip();
 
     ctx.globalCompositeOperation = 'multiply';
     ctx.fillStyle = liquidGrad;
-    // Fill the entire clipped area
-    ctx.fillRect(0, clampedFillY, canvas.width, canvas.height - clampedFillY);
+    ctx.fillRect(bulbLeft, clampedFillY, bulbDiam, canvas.height - clampedFillY);
 
     ctx.restore();
 
@@ -191,14 +200,17 @@ const thermometer = (() => {
     }
     ctx.restore();
 
-    // ── Dashed reading line (black) ──
+    // ── Dashed reading line ──
     ctx.save();
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth   = Math.max(1, 1.5 * zoom);
-    ctx.setLineDash([4 * zoom, 3 * zoom]);
+    const dashLineW   = Math.round(IW * zoom) + labelPad;  // full canvas width
+    const dashExtentL = tLeft - 8 * zoom;                   // left start
+    const dashExtentR = dashExtentL + (dashLineW - dashExtentL) * dashLenMult;
+    ctx.strokeStyle = dashColor;
+    ctx.lineWidth   = Math.max(0.5, dashThick * zoom);
+    ctx.setLineDash([5 * zoom, 3 * zoom]);
     ctx.beginPath();
-    ctx.moveTo(tLeft - 8 * zoom, clampedFillY);
-    ctx.lineTo(tRight + tickMajW + 4, clampedFillY);
+    ctx.moveTo(dashExtentL, clampedFillY);
+    ctx.lineTo(dashExtentR, clampedFillY);
     ctx.stroke();
     ctx.setLineDash([]);
 
