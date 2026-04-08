@@ -135,11 +135,11 @@ const thermometer = (() => {
     // 1. Tube portion — clipped to narrow rect only
     ctx.save();
     ctx.beginPath();
-    ctx.rect(tLeft, clampedFillY, tW, tBot - clampedFillY);
+    ctx.rect(tLeft, clampedFillY, tW, (tBot + 20 * zoom) - clampedFillY);
     ctx.clip();
     ctx.globalCompositeOperation = 'multiply';
     ctx.fillStyle = liquidGrad;
-    ctx.fillRect(tLeft, clampedFillY, tW, tBot - clampedFillY);
+    ctx.fillRect(tLeft, clampedFillY, tW, (tBot + 20 * zoom) - clampedFillY);
     ctx.restore();
 
     // 2. Bulb portion — clipped to arc only
