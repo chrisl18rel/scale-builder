@@ -111,38 +111,36 @@ const thermometer = (() => {
     const fillY        = tickValToY(reading);
     const clampedFillY = Math.max(tTop + 1, Math.min(tBot, fillY));
 
-    // ── Draw liquid first, then image with white bg removed ──
-    // This lets the red liquid show through the glass regardless of transparency mode.
-    // The white canvas fill (if not transparent) provides the page background.
+    // ── Draw image first, then liquid behind it using destination-over ──
+    // destination-over places new content behind existing pixels.
+    // The glass interior pixels are light/semi-transparent so red shows through.
+    // The opaque white background outside the glass blocks red from showing there.
+    if (img) {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
 
     const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
-    liquidGrad.addColorStop(0,    'rgba(200, 30,  30, 0.95)');
-    liquidGrad.addColorStop(0.2,  'rgba(230, 60,  60, 0.90)');
-    liquidGrad.addColorStop(0.5,  'rgba(240, 80,  80, 0.88)');
-    liquidGrad.addColorStop(0.8,  'rgba(230, 60,  60, 0.90)');
-    liquidGrad.addColorStop(1,    'rgba(200, 30,  30, 0.95)');
+    liquidGrad.addColorStop(0,    'rgba(200, 30,  30, 1)');
+    liquidGrad.addColorStop(0.25, 'rgba(235, 65,  65, 1)');
+    liquidGrad.addColorStop(0.75, 'rgba(235, 65,  65, 1)');
+    liquidGrad.addColorStop(1,    'rgba(200, 30,  30, 1)');
 
     ctx.save();
+    ctx.globalCompositeOperation = 'destination-over';
     ctx.fillStyle = liquidGrad;
 
-    // Tube + neck: one rect from clampedFillY all the way down to y=775
-    // The image drawn on top clips it to the visible glass interior naturally
+    // Tube rect from fill level down through the neck to y=775
     const tubeExtendBot = 775 * zoom;
     if (clampedFillY < tubeExtendBot) {
       ctx.fillRect(tLeft, clampedFillY, tW, tubeExtendBot - clampedFillY);
     }
 
-    // Bulb: large circle that fills the full interior — radius 72px covers it fully
+    // Bulb circle
     ctx.beginPath();
     ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
-
-    // Draw thermometer image on top — strip white bg so liquid shows through glass
-    if (img) {
-      drawImageWithTransparentBg(ctx, img, 0, 0, canvas.width, canvas.height, 230);
-    }
 
     // ── Ticks on RIGHT side of tube ──
     const tickMajW = tW * 0.90;
