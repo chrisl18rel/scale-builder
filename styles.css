@@ -177,13 +177,29 @@ input[type="number"]:focus { border-color: var(--accent); }
 .slider-offset-b3 .slider-input-row input[type="range"] { accent-color: #26c6da; }
 .slider-offset-b3 label { color: #26c6da; }
 
-/* Per-beam arrow Y offset colors — lime, amber, coral (all new, none previously used) */
+/* Per-beam arrow Y offset colors — lime, amber, coral */
 .slider-arrow-b1 .slider-input-row input[type="range"] { accent-color: #a3e635; }
 .slider-arrow-b1 label { color: #a3e635; }
 .slider-arrow-b2 .slider-input-row input[type="range"] { accent-color: #fbbf24; }
 .slider-arrow-b2 label { color: #fbbf24; }
 .slider-arrow-b3 .slider-input-row input[type="range"] { accent-color: #fb7185; }
 .slider-arrow-b3 label { color: #fb7185; }
+
+/* Per-beam tick height colors — indigo, emerald, yellow */
+.slider-tick-h-b1 .slider-input-row input[type="range"] { accent-color: #818cf8; }
+.slider-tick-h-b1 label { color: #818cf8; }
+.slider-tick-h-b2 .slider-input-row input[type="range"] { accent-color: #34d399; }
+.slider-tick-h-b2 label { color: #34d399; }
+.slider-tick-h-b3 .slider-input-row input[type="range"] { accent-color: #facc15; }
+.slider-tick-h-b3 label { color: #facc15; }
+
+/* Per-beam X scale stretch colors — sky, violet, orange-red */
+.slider-scale-x-b1 .slider-input-row input[type="range"] { accent-color: #38bdf8; }
+.slider-scale-x-b1 label { color: #38bdf8; }
+.slider-scale-x-b2 .slider-input-row input[type="range"] { accent-color: #c084fc; }
+.slider-scale-x-b2 label { color: #c084fc; }
+.slider-scale-x-b3 .slider-input-row input[type="range"] { accent-color: #fb923c; }
+.slider-scale-x-b3 label { color: #fb923c; }
 .display-divider {
   display: block;
   width: 100%;
