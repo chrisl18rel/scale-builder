@@ -47,6 +47,14 @@ const balance = (() => {
   ['b1-arrow-y','b2-arrow-y','b3-arrow-y'].forEach(base => {
     bindSliderWithInput(base + '-range', base + '-num', () => draw());
   });
+  // Per-beam tick height multiplier
+  ['b1-tick-h','b2-tick-h','b3-tick-h'].forEach(base => {
+    bindSliderWithInput(base + '-range', base + '-num', () => draw());
+  });
+  // Per-beam X scale stretch
+  ['b1-scale-x','b2-scale-x','b3-scale-x'].forEach(base => {
+    bindSliderWithInput(base + '-range', base + '-num', () => draw());
+  });
 
   document.getElementById('b-show-reading').addEventListener('change', draw);
   document.getElementById('b-transparent').addEventListener('change', () => {
@@ -98,6 +106,20 @@ const balance = (() => {
       getVal('b1-arrow-y-range','b1-arrow-y-num', 0),
       getVal('b2-arrow-y-range','b2-arrow-y-num', 0),
       getVal('b3-arrow-y-range','b3-arrow-y-num', 0),
+    ];
+
+    // Per-beam tick height multiplier (1.0 = default, <1 shorter, >1 taller)
+    const tickHeights = [
+      getVal('b1-tick-h-range','b1-tick-h-num', 1.0),
+      getVal('b2-tick-h-range','b2-tick-h-num', 1.0),
+      getVal('b3-tick-h-range','b3-tick-h-num', 1.0),
+    ];
+
+    // Per-beam X scale stretch: pixels per unit multiplier (1.0 = default)
+    const scaleXStretch = [
+      getVal('b1-scale-x-range','b1-scale-x-num', 1.0),
+      getVal('b2-scale-x-range','b2-scale-x-num', 1.0),
+      getVal('b3-scale-x-range','b3-scale-x-num', 1.0),
     ];
 
     const b1step = Math.max(0.01,  numVal('b1-step', 10));
@@ -165,12 +187,12 @@ const balance = (() => {
       const range     = cfg.max - cfg.min;
       if (range <= 0) return;
 
-      const pxPerUnit  = bWidth / range;
+      const pxPerUnit  = (bWidth / range) * scaleXStretch[idx];
 
-      // Tick heights: major tick reaches at most halfway down the silver area
-      const majorTickH = silverH * 0.30;
-      const medTickH   = silverH * 0.20;
-      const minTickH   = silverH * 0.12;
+      // Tick heights: base fraction × per-beam height multiplier
+      const majorTickH = silverH * 0.30 * tickHeights[idx];
+      const medTickH   = silverH * 0.20 * tickHeights[idx];
+      const minTickH   = silverH * 0.12 * tickHeights[idx];
 
       // Label Y: relative to silverY for proper placement in silver area
       const labelY = silverY + silverH * bd.labelFrac + fontSize + scaleNumShift[idx];
