@@ -12,8 +12,8 @@ const thermometer = (() => {
 
   // Bulb geometry — center x=80, shifted up slightly to close gap at bulb top
   const BULB_CX    = 80;
-  const BULB_CY    = 792;  // shifted up 8px from 800 to close white gap
-  const BULB_R     = 72;   // fills full bulb interior
+  const BULB_CY    = 800;  // bulb center
+  const BULB_R     = 76;   // slightly larger radius to close white gap at bulb top
 
   let img = null;
 
