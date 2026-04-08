@@ -34,6 +34,7 @@ const thermometer = (() => {
   bindSliderWithInput('t-fontsize-range', 't-fontsize-num', () => draw());
   bindSliderWithInput('t-lbl-x-range',    't-lbl-x-num',    () => draw());
   bindSliderWithInput('t-lbl-y-range',    't-lbl-y-num',    () => draw());
+  bindSliderWithInput('t-tick-len-range', 't-tick-len-num', () => draw());
 
   document.getElementById('t-show-reading').addEventListener('change', draw);
   document.getElementById('t-transparent').addEventListener('change', () => {
@@ -82,7 +83,9 @@ const thermometer = (() => {
     const lblOffX     = getVal('t-lbl-x-range', 't-lbl-x-num', 0);
     const lblOffY     = getVal('t-lbl-y-range', 't-lbl-y-num', 0);
 
-    canvas.width  = Math.round(IW * zoom);
+    // Add right padding for tick labels
+    const labelPad = Math.round(fontSize * 5 + 60);
+    canvas.width  = Math.round(IW * zoom) + labelPad;
     canvas.height = Math.round(IH * zoom);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -111,41 +114,47 @@ const thermometer = (() => {
     const fillY        = tickValToY(reading);
     const clampedFillY = Math.max(tTop + 1, Math.min(tBot, fillY));
 
-    // ── Draw image first, then liquid behind it using destination-over ──
-    // destination-over places new content behind existing pixels.
-    // The glass interior pixels are light/semi-transparent so red shows through.
-    // The opaque white background outside the glass blocks red from showing there.
+    // All image pixels are fully opaque (a=255) — destination-over won't work.
+    // Solution: draw image first, then multiply-blend red CLIPPED to tube+bulb shape.
+    // Multiply: red × light-glass-interior = red visible; outside clip = untouched.
+
     if (img) {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, Math.round(IW * zoom), Math.round(IH * zoom));
     }
 
     const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
-    liquidGrad.addColorStop(0,    'rgba(200, 30,  30, 1)');
-    liquidGrad.addColorStop(0.25, 'rgba(235, 65,  65, 1)');
-    liquidGrad.addColorStop(0.75, 'rgba(235, 65,  65, 1)');
-    liquidGrad.addColorStop(1,    'rgba(200, 30,  30, 1)');
+    liquidGrad.addColorStop(0,    'rgb(200, 30,  30)');
+    liquidGrad.addColorStop(0.25, 'rgb(235, 65,  65)');
+    liquidGrad.addColorStop(0.75, 'rgb(235, 65,  65)');
+    liquidGrad.addColorStop(1,    'rgb(200, 30,  30)');
 
     ctx.save();
-    ctx.globalCompositeOperation = 'destination-over';
-    ctx.fillStyle = liquidGrad;
 
-    // Tube rect from fill level down through the neck to y=775
-    const tubeExtendBot = 775 * zoom;
-    if (clampedFillY < tubeExtendBot) {
-      ctx.fillRect(tLeft, clampedFillY, tW, tubeExtendBot - clampedFillY);
-    }
-
-    // Bulb circle
+    // Clip to the tube + neck + bulb shape so multiply never touches outside
     ctx.beginPath();
+    // Tube rect from fill level to TUBE_BOT
+    const neckBot = 775 * zoom;
+    ctx.rect(tLeft, clampedFillY, tW, neckBot - clampedFillY);
+    // Bulb circle
     ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.clip();
+
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = liquidGrad;
+    // Fill the entire clipped area
+    ctx.fillRect(0, clampedFillY, canvas.width, canvas.height - clampedFillY);
 
     ctx.restore();
 
+    const tickLenMult = getVal('t-tick-len-range', 't-tick-len-num', 1.0);
+
     // ── Ticks on RIGHT side of tube ──
-    const tickMajW = tW * 0.90;
-    const tickMedW = tW * 0.60;
-    const tickMinW = tW * 0.38;
+    // Base widths as fraction of tube width, scaled by user tick length multiplier
+    // Clamped so ticks never extend past the right glass wall at tRight
+    const maxTickW  = Math.round(IW * zoom) - tRight - 2;  // space available to right of tube
+    const tickMajW  = Math.min(tW * 0.90 * tickLenMult, maxTickW);
+    const tickMedW  = Math.min(tW * 0.60 * tickLenMult, maxTickW);
+    const tickMinW  = Math.min(tW * 0.38 * tickLenMult, maxTickW);
     const range     = maxV - minV;
     const subVal    = major / subs;
     const decPlaces = Math.max(0, -Math.floor(Math.log10(Math.abs(subVal) || 1)));
