@@ -57,6 +57,7 @@ const balance = (() => {
   });
 
   document.getElementById('b-show-reading').addEventListener('change', draw);
+  document.getElementById('b-show-riders').addEventListener('change', draw);
   document.getElementById('b-transparent').addEventListener('change', () => {
     updateBgClass('b-checker', isChecked('b-transparent'));
     draw();
@@ -88,6 +89,7 @@ const balance = (() => {
     const zoom        = getVal('b-zoom-range',     'b-zoom-num',     100) / 100;
     const fontSize    = getVal('b-fontsize-range', 'b-fontsize-num', 13);
     const showRead    = isChecked('b-show-reading');
+    const showRiders  = isChecked('b-show-riders');
     const transparent = isChecked('b-transparent');
 
     const lblOffsets = [
@@ -245,39 +247,40 @@ const balance = (() => {
 
       if (riderX >= bLeft - 5 && riderX <= bRight + 5) {
         const rW      = Math.max(14, 22 * zoom);
-        const rY      = bd.silverTop * zoom;          // rider top = top of silver area
-        const rBottom = bd.silverBot * zoom;          // rider bottom = bottom of silver area
+        const rY      = bd.silverTop * zoom;
+        const rBottom = bd.silverBot * zoom;
         const rH      = rBottom - rY;
 
         ctx.save();
-        const rg = ctx.createLinearGradient(riderX - rW/2, 0, riderX + rW/2, 0);
-        rg.addColorStop(0, '#888'); rg.addColorStop(0.3, '#ddd');
-        rg.addColorStop(0.7, '#ddd'); rg.addColorStop(1, '#777');
-        ctx.fillStyle = rg; ctx.strokeStyle = '#333';
-        ctx.lineWidth = Math.max(0.8, 1.2 * zoom);
-        ctx.beginPath();
-        ctx.roundRect(riderX - rW/2, rY, rW, rH, 2 * zoom);
-        ctx.fill(); ctx.stroke();
 
-        // Center notch
-        ctx.strokeStyle = '#222'; ctx.lineWidth = Math.max(0.8, 1.5 * zoom);
-        ctx.beginPath(); ctx.moveTo(riderX, rY + 2); ctx.lineTo(riderX, rY + rH - 2); ctx.stroke();
+        if (showRiders) {
+          // Draw rider body
+          const rg = ctx.createLinearGradient(riderX - rW/2, 0, riderX + rW/2, 0);
+          rg.addColorStop(0, '#888'); rg.addColorStop(0.3, '#ddd');
+          rg.addColorStop(0.7, '#ddd'); rg.addColorStop(1, '#777');
+          ctx.fillStyle = rg; ctx.strokeStyle = '#333';
+          ctx.lineWidth = Math.max(0.8, 1.2 * zoom);
+          ctx.beginPath();
+          ctx.roundRect(riderX - rW/2, rY, rW, rH, 2 * zoom);
+          ctx.fill(); ctx.stroke();
 
-        // Arrow: tip floats above topRail, stem goes from tip down to rider top
-        // arrowOffsets[idx] shifts the arrow up (negative) or down (positive)
-        const arrowTipY  = topY - 18 * zoom + arrowOffsets[idx];
+          // Center notch
+          ctx.strokeStyle = '#222'; ctx.lineWidth = Math.max(0.8, 1.5 * zoom);
+          ctx.beginPath(); ctx.moveTo(riderX, rY + 2); ctx.lineTo(riderX, rY + rH - 2); ctx.stroke();
+        }
+
+        // Arrow always drawn — stem goes to rY (rider top) if visible, else to silverY
+        const stemBottomY = showRiders ? rY : silverY;
+        const arrowTipY   = topY - 18 * zoom + arrowOffsets[idx];
         const aw = Math.max(5, 7 * zoom);
-        // Arrowhead pointing DOWN (tip is lowest point of the triangle)
         const headBaseY = arrowTipY;
         const headTipY  = arrowTipY + aw * 1.6;
         ctx.fillStyle = '#c00'; ctx.strokeStyle = '#c00';
         ctx.lineWidth = Math.max(1, 1.5 * zoom);
-        // Stem from arrowhead tip down to rider top — grows/shrinks with offset
         ctx.beginPath();
         ctx.moveTo(riderX, headTipY);
-        ctx.lineTo(riderX, rY);
+        ctx.lineTo(riderX, stemBottomY);
         ctx.stroke();
-        // Arrowhead
         ctx.beginPath();
         ctx.moveTo(riderX - aw, headBaseY);
         ctx.lineTo(riderX + aw, headBaseY);
