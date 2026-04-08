@@ -82,9 +82,7 @@ const thermometer = (() => {
     const lblOffX     = getVal('t-lbl-x-range', 't-lbl-x-num', 0);
     const lblOffY     = getVal('t-lbl-y-range', 't-lbl-y-num', 0);
 
-    // Add right padding for tick labels
-    const labelPad = Math.round(fontSize * 5 + 60);
-    canvas.width  = Math.round(IW * zoom) + labelPad;
+    canvas.width  = Math.round(IW * zoom);
     canvas.height = Math.round(IH * zoom);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -113,37 +111,38 @@ const thermometer = (() => {
     const fillY        = tickValToY(reading);
     const clampedFillY = Math.max(tTop + 1, Math.min(tBot, fillY));
 
-    // All image pixels are fully opaque (a=255) — destination-over won't work.
-    // Solution: draw image first, then multiply-blend red CLIPPED to tube+bulb shape.
-    // Multiply: red × light-glass-interior = red visible; outside clip = untouched.
-
-    if (img) {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    }
+    // ── Draw liquid first, then image with white bg removed ──
+    // This lets the red liquid show through the glass regardless of transparency mode.
+    // The white canvas fill (if not transparent) provides the page background.
 
     const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
-    liquidGrad.addColorStop(0,    'rgb(200, 30,  30)');
-    liquidGrad.addColorStop(0.25, 'rgb(235, 65,  65)');
-    liquidGrad.addColorStop(0.75, 'rgb(235, 65,  65)');
-    liquidGrad.addColorStop(1,    'rgb(200, 30,  30)');
+    liquidGrad.addColorStop(0,    'rgba(200, 30,  30, 0.95)');
+    liquidGrad.addColorStop(0.2,  'rgba(230, 60,  60, 0.90)');
+    liquidGrad.addColorStop(0.5,  'rgba(240, 80,  80, 0.88)');
+    liquidGrad.addColorStop(0.8,  'rgba(230, 60,  60, 0.90)');
+    liquidGrad.addColorStop(1,    'rgba(200, 30,  30, 0.95)');
 
     ctx.save();
-
-    // Clip to the tube + neck + bulb shape so multiply never touches outside
-    ctx.beginPath();
-    // Tube rect from fill level to TUBE_BOT
-    const neckBot = 775 * zoom;
-    ctx.rect(tLeft, clampedFillY, tW, neckBot - clampedFillY);
-    // Bulb circle
-    ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
-    ctx.clip();
-
-    ctx.globalCompositeOperation = 'multiply';
     ctx.fillStyle = liquidGrad;
-    // Fill the entire clipped area
-    ctx.fillRect(0, clampedFillY, canvas.width, canvas.height - clampedFillY);
+
+    // Tube + neck: one rect from clampedFillY all the way down to y=775
+    // The image drawn on top clips it to the visible glass interior naturally
+    const tubeExtendBot = 775 * zoom;
+    if (clampedFillY < tubeExtendBot) {
+      ctx.fillRect(tLeft, clampedFillY, tW, tubeExtendBot - clampedFillY);
+    }
+
+    // Bulb: large circle that fills the full interior — radius 72px covers it fully
+    ctx.beginPath();
+    ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
+
+    // Draw thermometer image on top — strip white bg so liquid shows through glass
+    if (img) {
+      drawImageWithTransparentBg(ctx, img, 0, 0, canvas.width, canvas.height, 230);
+    }
 
     // ── Ticks on RIGHT side of tube ──
     const tickMajW = tW * 0.90;
