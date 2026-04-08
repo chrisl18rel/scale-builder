@@ -13,7 +13,7 @@ const thermometer = (() => {
   // Bulb center shifted up 6px from scanned 800 to sit inside glass top
   const BULB_CX    = 80;
   const BULB_CY    = 794;
-  const BULB_R     = 76;
+  const BULB_R     = 68;   // fits inside glass without bleeding
 
   let img = null;
 
@@ -123,30 +123,33 @@ const thermometer = (() => {
       ctx.drawImage(img, 0, 0, Math.round(IW * zoom), Math.round(IH * zoom));
     }
 
-    // ── Red liquid: multiply blend, clipped to tube + bulb ──
+    // ── Red liquid: two separate clipped regions ──
+    // Combining shapes in one clip path creates a union that leaks outside the glass.
+    // Instead: clip to tube rect separately, then clip to bulb arc separately.
     const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
     liquidGrad.addColorStop(0,    'rgb(200, 30,  30)');
     liquidGrad.addColorStop(0.25, 'rgb(235, 65,  65)');
     liquidGrad.addColorStop(0.75, 'rgb(235, 65,  65)');
     liquidGrad.addColorStop(1,    'rgb(200, 30,  30)');
 
+    // 1. Tube portion — clipped to narrow rect only
     ctx.save();
-
-    const neckBot  = 775 * zoom;
-    const bulbLeft = (BULB_CX - BULB_R) * zoom;
-    const bulbDiam = BULB_R * 2 * zoom;
-
-    // Clip path: tube rect + wide rect over bulb bounding box + bulb arc
     ctx.beginPath();
-    ctx.rect(tLeft, clampedFillY, tW, neckBot - clampedFillY);
-    ctx.rect(bulbLeft, neckBot, bulbDiam, canvas.height - neckBot);
-    ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
+    ctx.rect(tLeft, clampedFillY, tW, tBot - clampedFillY);
     ctx.clip();
-
     ctx.globalCompositeOperation = 'multiply';
     ctx.fillStyle = liquidGrad;
-    ctx.fillRect(bulbLeft, clampedFillY, bulbDiam, canvas.height - clampedFillY);
+    ctx.fillRect(tLeft, clampedFillY, tW, tBot - clampedFillY);
+    ctx.restore();
 
+    // 2. Bulb portion — clipped to arc only
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = liquidGrad;
+    ctx.fillRect(bCX - bR, bCY - bR, bR * 2, bR * 2);
     ctx.restore();
 
     // ── Ticks ──
