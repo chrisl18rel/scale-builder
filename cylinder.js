@@ -102,8 +102,19 @@ const cylinder = (() => {
     // ── Liquid fill ON TOP of image, clipped to tube interior ──
     if (clampedFillY < tBot) {
       ctx.save();
+
+      // Corner radius for bottom of liquid — matches the inner glass curve
+      const cornerR = tW * 0.18 * zoom;
+
+      // Clip to rounded-bottom liquid shape so nothing bleeds outside the glass
       ctx.beginPath();
-      ctx.rect(tLeft, tTop, tW, tH);
+      ctx.moveTo(tLeft, clampedFillY);
+      ctx.lineTo(tLeft, tBot - cornerR);
+      ctx.quadraticCurveTo(tLeft,  tBot, tLeft  + cornerR, tBot);
+      ctx.lineTo(tRight - cornerR, tBot);
+      ctx.quadraticCurveTo(tRight, tBot, tRight, tBot - cornerR);
+      ctx.lineTo(tRight, clampedFillY);
+      ctx.closePath();
       ctx.clip();
 
       const grad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
@@ -112,6 +123,7 @@ const cylinder = (() => {
       grad.addColorStop(0.82, 'rgba(130,205,245,0.60)');
       grad.addColorStop(1,    'rgba(70,155,215,0.75)');
 
+      // Fill the full liquid body (clipped to rounded shape above)
       ctx.fillStyle = grad;
       ctx.fillRect(tLeft, clampedFillY, tW, tBot - clampedFillY);
 
@@ -133,8 +145,10 @@ const cylinder = (() => {
       ctx.bezierCurveTo(tCX + tW*0.05, clampedFillY, tRight - tW*0.25, clampedFillY - mDepth*0.2, tRight, clampedFillY - mDepth);
       ctx.stroke();
 
+      // Glass glare highlight
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
       ctx.fillRect(tLeft + tW*0.64, clampedFillY, tW*0.11, tBot - clampedFillY);
+
       ctx.restore();
     }
 
