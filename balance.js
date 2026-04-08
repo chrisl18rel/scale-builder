@@ -141,7 +141,11 @@ const balance = (() => {
     }
 
     if (img) {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      if (transparent) {
+        drawImageWithTransparentBg(ctx, img, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      }
     } else {
       ctx.fillStyle = '#b0b8c4';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -164,9 +168,9 @@ const balance = (() => {
       const pxPerUnit  = bWidth / range;
 
       // Tick heights downward from silverY (into silver area, not dark rail)
-      const majorTickH = silverH * 0.65;
-      const medTickH   = silverH * 0.42;
-      const minTickH   = silverH * 0.26;
+      const majorTickH = silverH * 0.40;
+      const medTickH   = silverH * 0.26;
+      const minTickH   = silverH * 0.16;
 
       // Label Y: relative to silverY for proper placement in silver area
       const labelY = silverY + silverH * bd.labelFrac + fontSize + scaleNumShift[idx];
