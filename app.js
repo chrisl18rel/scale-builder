@@ -134,6 +134,40 @@ if (b3subsSlider && b3subsLabel) {
   }
 });
 
+// Enforce reading ≤ max for all three beams.
+// Whenever max changes: update reading's max attr and clamp current value.
+// Whenever reading changes: clamp if it exceeds max.
+['b1','b2','b3'].forEach(prefix => {
+  const maxEl     = document.getElementById(`${prefix}-max`);
+  const readingEl = document.getElementById(`${prefix}-reading`);
+  if (!maxEl || !readingEl) return;
+
+  function syncMax() {
+    const maxVal = parseFloat(maxEl.value);
+    if (isNaN(maxVal)) return;
+    readingEl.max = maxVal;
+    const currentVal = parseFloat(readingEl.value);
+    if (!isNaN(currentVal) && currentVal > maxVal) {
+      readingEl.value = maxVal;
+      readingEl.dispatchEvent(new Event('input'));
+    }
+  }
+
+  function clampReading() {
+    const maxVal = parseFloat(maxEl.value);
+    const val    = parseFloat(readingEl.value);
+    if (!isNaN(maxVal) && !isNaN(val) && val > maxVal) {
+      readingEl.value = maxVal;
+      readingEl.dispatchEvent(new Event('input'));
+    }
+  }
+
+  maxEl.addEventListener('input', syncMax);
+  readingEl.addEventListener('input', clampReading);
+  // Set initial max attr on page load
+  syncMax();
+});
+
 // Reading label offset sliders wired after instruments load (deferred)
 // These are called from each instrument's own init instead, since
 // ruler/cylinder/balance objects don't exist yet at app.js parse time.
