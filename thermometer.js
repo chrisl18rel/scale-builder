@@ -34,6 +34,7 @@ const thermometer = (() => {
   bindSliderWithInput('t-fontsize-range', 't-fontsize-num', () => draw());
   bindSliderWithInput('t-lbl-x-range',    't-lbl-x-num',    () => draw());
   bindSliderWithInput('t-lbl-y-range',    't-lbl-y-num',    () => draw());
+  bindSliderWithInput('t-tick-len-range', 't-tick-len-num', () => draw());
 
   document.getElementById('t-show-reading').addEventListener('change', draw);
   document.getElementById('t-transparent').addEventListener('change', () => {
@@ -118,7 +119,7 @@ const thermometer = (() => {
     // Multiply: red × light-glass-interior = red visible; outside clip = untouched.
 
     if (img) {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, Math.round(IW * zoom), Math.round(IH * zoom));
     }
 
     const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
@@ -145,10 +146,15 @@ const thermometer = (() => {
 
     ctx.restore();
 
+    const tickLenMult = getVal('t-tick-len-range', 't-tick-len-num', 1.0);
+
     // ── Ticks on RIGHT side of tube ──
-    const tickMajW = tW * 0.90;
-    const tickMedW = tW * 0.60;
-    const tickMinW = tW * 0.38;
+    // Base widths as fraction of tube width, scaled by user tick length multiplier
+    // Clamped so ticks never extend past the right glass wall at tRight
+    const maxTickW  = Math.round(IW * zoom) - tRight - 2;  // space available to right of tube
+    const tickMajW  = Math.min(tW * 0.90 * tickLenMult, maxTickW);
+    const tickMedW  = Math.min(tW * 0.60 * tickLenMult, maxTickW);
+    const tickMinW  = Math.min(tW * 0.38 * tickLenMult, maxTickW);
     const range     = maxV - minV;
     const subVal    = major / subs;
     const decPlaces = Math.max(0, -Math.floor(Math.log10(Math.abs(subVal) || 1)));
