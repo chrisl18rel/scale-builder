@@ -13,7 +13,7 @@ const thermometer = (() => {
   // Bulb geometry — center x=80, widest inner radius at y=800
   const BULB_CX    = 80;
   const BULB_CY    = 800;
-  const BULB_R     = 67;   // inner radius at widest point
+  const BULB_R     = 72;   // fills full bulb interior
 
   let img = null;
 
@@ -115,12 +115,6 @@ const thermometer = (() => {
     // This lets the red liquid show through the glass regardless of transparency mode.
     // The white canvas fill (if not transparent) provides the page background.
 
-    // ── Red liquid ──
-    // Neck: exact left AND right inner bounds from pixel scan, no mirroring math
-    const neckL = [51,51,51,51,51,50,50,49,48,47,46,45,44,42,41,39,38,37,36,35,34,33,32,31,30,29,29,28,27,26,26,25,24,24,23,23,22,21,21,20,20,20,19,19,18,18,18,17,17,17,16];
-    const neckR = [110,110,110,111,111,111,112,113,113,114,116,117,118,120,121,122,124,125,126,127,128,129,130,131,132,133,133,134,135,136,136,137,138,138,139,139,140,140,141,141,142,142,142,143,143,144,144,144,145,145,145];
-    // neckL[0] / neckR[0] = y=725, neckL[50] / neckR[50] = y=775
-
     const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
     liquidGrad.addColorStop(0,    'rgba(200, 30,  30, 0.95)');
     liquidGrad.addColorStop(0.2,  'rgba(230, 60,  60, 0.90)');
@@ -129,40 +123,23 @@ const thermometer = (() => {
     liquidGrad.addColorStop(1,    'rgba(200, 30,  30, 0.95)');
 
     ctx.save();
-
-    // 1. Tube body rect (flat top at clampedFillY, straight down to TUBE_BOT)
-    if (clampedFillY < tBot) {
-      ctx.beginPath();
-      ctx.rect(tLeft, clampedFillY, tW, tBot - clampedFillY);
-      ctx.fillStyle = liquidGrad;
-      ctx.fill();
-    }
-
-    // 2. Neck polygon — left side down then right side up, using scanned coords
-    ctx.beginPath();
-    ctx.moveTo(neckL[0] * zoom, 725 * zoom);
-    for (let i = 0; i < neckL.length; i++) {
-      ctx.lineTo(neckL[i] * zoom, (725 + i) * zoom);
-    }
-    // across bottom of neck
-    ctx.lineTo(neckR[neckR.length - 1] * zoom, (725 + neckR.length - 1) * zoom);
-    // right side back up
-    for (let i = neckR.length - 1; i >= 0; i--) {
-      ctx.lineTo(neckR[i] * zoom, (725 + i) * zoom);
-    }
-    ctx.closePath();
     ctx.fillStyle = liquidGrad;
-    ctx.fill();
 
-    // 3. Bulb circle — use inner radius 67px at center (80, 800)
+    // Tube + neck: one rect from clampedFillY all the way down to y=775
+    // The image drawn on top clips it to the visible glass interior naturally
+    const tubeExtendBot = 775 * zoom;
+    if (clampedFillY < tubeExtendBot) {
+      ctx.fillRect(tLeft, clampedFillY, tW, tubeExtendBot - clampedFillY);
+    }
+
+    // Bulb: large circle that fills the full interior — radius 72px covers it fully
     ctx.beginPath();
     ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
-    ctx.fillStyle = liquidGrad;
     ctx.fill();
 
     ctx.restore();
 
-    // Draw thermometer image on top — strip white bg so liquid shows through
+    // Draw thermometer image on top — strip white bg so liquid shows through glass
     if (img) {
       drawImageWithTransparentBg(ctx, img, 0, 0, canvas.width, canvas.height, 230);
     }
