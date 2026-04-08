@@ -144,12 +144,11 @@ const thermometer = (() => {
     }
 
     // ── Draw thermometer image OVER liquid ──
+    // Always use transparent-bg draw so the white image background
+    // doesn't cover the red liquid — the glass outline pixels are kept,
+    // only the white background is removed.
     if (img) {
-      if (transparent) {
-        drawImageWithTransparentBg(ctx, img, 0, 0, canvas.width, canvas.height);
-      } else {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      }
+      drawImageWithTransparentBg(ctx, img, 0, 0, canvas.width, canvas.height, 235);
     }
 
     // ── Ticks on RIGHT side of tube ──
