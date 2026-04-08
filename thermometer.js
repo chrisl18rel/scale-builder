@@ -111,44 +111,69 @@ const thermometer = (() => {
     const fillY        = tickValToY(reading);
     const clampedFillY = Math.max(tTop + 1, Math.min(tBot, fillY));
 
-    // ── Red liquid — drawn BEFORE image ──
-    const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
-    liquidGrad.addColorStop(0,    'rgba(210, 40,  40, 0.92)');
-    liquidGrad.addColorStop(0.25, 'rgba(240, 80,  80, 0.80)');
-    liquidGrad.addColorStop(0.75, 'rgba(240, 80,  80, 0.80)');
-    liquidGrad.addColorStop(1,    'rgba(200, 30,  30, 0.92)');
+    // ── Draw thermometer image + liquid ──
+    // White bg mode: image first, then multiply-blend liquid (red × white glass = red visible)
+    // Transparent mode: liquid first, then image with bg removed (liquid shows through)
+    if (!transparent) {
+      // Draw image onto white canvas
+      if (img) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    // Bulb fill (always full)
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(bCX, bCY, bR * 0.82, 0, Math.PI * 2);
-    ctx.fillStyle = liquidGrad;
-    ctx.fill();
-    ctx.restore();
-
-    // Tube fill with rounded bottom corners
-    if (clampedFillY < tBot) {
+      // Multiply blend liquid over the image
       ctx.save();
-      const cornerR = tW * 0.2;
-      ctx.beginPath();
-      ctx.moveTo(tLeft, clampedFillY);
-      ctx.lineTo(tLeft, tBot - cornerR);
-      ctx.quadraticCurveTo(tLeft,  tBot, tLeft  + cornerR, tBot);
-      ctx.lineTo(tRight - cornerR, tBot);
-      ctx.quadraticCurveTo(tRight, tBot, tRight, tBot - cornerR);
-      ctx.lineTo(tRight, clampedFillY);
-      ctx.closePath();
-      ctx.fillStyle = liquidGrad;
-      ctx.fill();
-      ctx.restore();
-    }
+      ctx.globalCompositeOperation = 'multiply';
 
-    // ── Draw thermometer image OVER liquid ──
-    // Always use transparent-bg draw so the white image background
-    // doesn't cover the red liquid — the glass outline pixels are kept,
-    // only the white background is removed.
-    if (img) {
-      drawImageWithTransparentBg(ctx, img, 0, 0, canvas.width, canvas.height, 235);
+      const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
+      liquidGrad.addColorStop(0,    'rgb(210, 40,  40)');
+      liquidGrad.addColorStop(0.25, 'rgb(240, 80,  80)');
+      liquidGrad.addColorStop(0.75, 'rgb(240, 80,  80)');
+      liquidGrad.addColorStop(1,    'rgb(200, 30,  30)');
+
+      ctx.beginPath();
+      ctx.arc(bCX, bCY, bR * 0.82, 0, Math.PI * 2);
+      ctx.fillStyle = liquidGrad; ctx.fill();
+
+      if (clampedFillY < tBot) {
+        const cornerR = tW * 0.2;
+        ctx.beginPath();
+        ctx.moveTo(tLeft, clampedFillY);
+        ctx.lineTo(tLeft, tBot - cornerR);
+        ctx.quadraticCurveTo(tLeft,  tBot, tLeft  + cornerR, tBot);
+        ctx.lineTo(tRight - cornerR, tBot);
+        ctx.quadraticCurveTo(tRight, tBot, tRight, tBot - cornerR);
+        ctx.lineTo(tRight, clampedFillY);
+        ctx.closePath();
+        ctx.fillStyle = liquidGrad; ctx.fill();
+      }
+      ctx.restore();
+
+    } else {
+      // Transparent mode: liquid first, image on top with white bg stripped
+      const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
+      liquidGrad.addColorStop(0,    'rgba(210, 40,  40, 0.92)');
+      liquidGrad.addColorStop(0.25, 'rgba(240, 80,  80, 0.85)');
+      liquidGrad.addColorStop(0.75, 'rgba(240, 80,  80, 0.85)');
+      liquidGrad.addColorStop(1,    'rgba(200, 30,  30, 0.92)');
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(bCX, bCY, bR * 0.82, 0, Math.PI * 2);
+      ctx.fillStyle = liquidGrad; ctx.fill();
+
+      if (clampedFillY < tBot) {
+        const cornerR = tW * 0.2;
+        ctx.beginPath();
+        ctx.moveTo(tLeft, clampedFillY);
+        ctx.lineTo(tLeft, tBot - cornerR);
+        ctx.quadraticCurveTo(tLeft,  tBot, tLeft  + cornerR, tBot);
+        ctx.lineTo(tRight - cornerR, tBot);
+        ctx.quadraticCurveTo(tRight, tBot, tRight, tBot - cornerR);
+        ctx.lineTo(tRight, clampedFillY);
+        ctx.closePath();
+        ctx.fillStyle = liquidGrad; ctx.fill();
+      }
+      ctx.restore();
+
+      if (img) drawImageWithTransparentBg(ctx, img, 0, 0, canvas.width, canvas.height, 240);
     }
 
     // ── Ticks on RIGHT side of tube ──
