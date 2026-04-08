@@ -89,7 +89,11 @@ const cylinder = (() => {
 
     // ── Draw cylinder image FIRST ──
     if (img) {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      if (transparent) {
+        drawImageWithTransparentBg(ctx, img, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      }
     } else {
       ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
       ctx.strokeRect(tLeft, tTop, tW, tH);
