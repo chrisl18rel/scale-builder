@@ -10,10 +10,10 @@ const thermometer = (() => {
   const TUBE_TOP   = 40;   // top of mercury column
   const TUBE_BOT   = 725;  // where tube meets bulb
 
-  // Bulb geometry — center x=80, widest inner radius at y=800
+  // Bulb center shifted up 6px from scanned 800 to sit inside glass top
   const BULB_CX    = 80;
-  const BULB_CY    = 800;
-  const BULB_R     = 72;   // fills full bulb interior
+  const BULB_CY    = 794;
+  const BULB_R     = 76;
 
   let img = null;
 
@@ -29,20 +29,23 @@ const thermometer = (() => {
     if (el) el.addEventListener('input', draw);
   });
 
-  bindSliderWithInput('t-zoom-range',     't-zoom-num',     () => draw());
-  bindSliderWithInput('t-tick-range',     't-tick-num',     () => draw());
-  bindSliderWithInput('t-fontsize-range', 't-fontsize-num', () => draw());
-  bindSliderWithInput('t-lbl-x-range',    't-lbl-x-num',    () => draw());
-  bindSliderWithInput('t-lbl-y-range',    't-lbl-y-num',    () => draw());
-  bindSliderWithInput('t-tick-len-range', 't-tick-len-num', () => draw());
+  bindSliderWithInput('t-zoom-range',       't-zoom-num',       () => draw());
+  bindSliderWithInput('t-tick-range',       't-tick-num',       () => draw());
+  bindSliderWithInput('t-fontsize-range',   't-fontsize-num',   () => draw());
+  bindSliderWithInput('t-lbl-x-range',      't-lbl-x-num',      () => draw());
+  bindSliderWithInput('t-lbl-y-range',      't-lbl-y-num',      () => draw());
+  bindSliderWithInput('t-tick-len-range',   't-tick-len-num',   () => draw());
+  bindSliderWithInput('t-dash-thick-range', 't-dash-thick-num', () => draw());
+  bindSliderWithInput('t-dash-len-range',   't-dash-len-num',   () => draw());
 
+  document.getElementById('t-dash-color').addEventListener('input', draw);
   document.getElementById('t-show-reading').addEventListener('change', draw);
   document.getElementById('t-transparent').addEventListener('change', () => {
     updateBgClass('t-checker', isChecked('t-transparent'));
     draw();
   });
 
-  // Unit presets: when user picks a unit preset, set sensible min/max
+  // Unit presets
   document.getElementById('t-unit-preset').addEventListener('change', function() {
     const preset = this.value;
     const minEl  = document.getElementById('t-min');
@@ -53,9 +56,9 @@ const thermometer = (() => {
     if (preset === 'C') {
       minEl.value = -10; maxEl.value = 110; unitEl.value = '°C'; majEl.value = 10; readEl.value = 25;
     } else if (preset === 'F') {
-      minEl.value = 0; maxEl.value = 220; unitEl.value = '°F'; majEl.value = 20; readEl.value = 77;
+      minEl.value = 0;   maxEl.value = 220; unitEl.value = '°F'; majEl.value = 20; readEl.value = 77;
     } else if (preset === 'K') {
-      minEl.value = 263; maxEl.value = 373; unitEl.value = 'K'; majEl.value = 10; readEl.value = 298;
+      minEl.value = 263; maxEl.value = 373; unitEl.value = 'K';  majEl.value = 10; readEl.value = 298;
     }
     draw();
   });
@@ -82,8 +85,12 @@ const thermometer = (() => {
     const transparent = isChecked('t-transparent');
     const lblOffX     = getVal('t-lbl-x-range', 't-lbl-x-num', 0);
     const lblOffY     = getVal('t-lbl-y-range', 't-lbl-y-num', 0);
+    const tickLenMult = getVal('t-tick-len-range',   't-tick-len-num',   1.0);
+    const dashColor   = strVal('t-dash-color', '#222222');
+    const dashThick   = getVal('t-dash-thick-range', 't-dash-thick-num', 1.5);
+    const dashLenMult = getVal('t-dash-len-range',   't-dash-len-num',   1.0);
 
-    // Add right padding for tick labels
+    // Right padding for tick labels
     const labelPad = Math.round(fontSize * 5 + 60);
     canvas.width  = Math.round(IW * zoom) + labelPad;
     canvas.height = Math.round(IH * zoom);
@@ -100,13 +107,10 @@ const thermometer = (() => {
     const tTop   = TUBE_TOP   * zoom;
     const tBot   = TUBE_BOT   * zoom;
     const tW     = tRight - tLeft;
-    const tH     = tBot - tTop;
-    const tCX    = (tLeft + tRight) / 2;
     const bCX    = BULB_CX * zoom;
     const bCY    = BULB_CY * zoom;
     const bR     = BULB_R  * zoom;
 
-    // Value → Y: pxPerMajor drives spacing, tBot = minV
     function tickValToY(v) {
       return tBot - (v - minV) * (pxPerMajor / major);
     }
@@ -114,14 +118,12 @@ const thermometer = (() => {
     const fillY        = tickValToY(reading);
     const clampedFillY = Math.max(tTop + 1, Math.min(tBot, fillY));
 
-    // All image pixels are fully opaque (a=255) — destination-over won't work.
-    // Solution: draw image first, then multiply-blend red CLIPPED to tube+bulb shape.
-    // Multiply: red × light-glass-interior = red visible; outside clip = untouched.
-
+    // ── Draw image first ──
     if (img) {
       ctx.drawImage(img, 0, 0, Math.round(IW * zoom), Math.round(IH * zoom));
     }
 
+    // ── Red liquid: multiply blend, clipped to tube + bulb ──
     const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
     liquidGrad.addColorStop(0,    'rgb(200, 30,  30)');
     liquidGrad.addColorStop(0.25, 'rgb(235, 65,  65)');
@@ -130,32 +132,28 @@ const thermometer = (() => {
 
     ctx.save();
 
-    // Clip to the tube + neck + bulb shape so multiply never touches outside
+    const neckBot  = 775 * zoom;
+    const bulbLeft = (BULB_CX - BULB_R) * zoom;
+    const bulbDiam = BULB_R * 2 * zoom;
+
+    // Clip path: tube rect + wide rect over bulb bounding box + bulb arc
     ctx.beginPath();
-    // Tube rect from fill level to TUBE_BOT
-    const neckBot = 775 * zoom;
     ctx.rect(tLeft, clampedFillY, tW, neckBot - clampedFillY);
-    // Bulb circle
+    ctx.rect(bulbLeft, neckBot, bulbDiam, canvas.height - neckBot);
     ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
     ctx.clip();
 
     ctx.globalCompositeOperation = 'multiply';
     ctx.fillStyle = liquidGrad;
-    // Fill the entire clipped area
-    ctx.fillRect(0, clampedFillY, canvas.width, canvas.height - clampedFillY);
+    ctx.fillRect(bulbLeft, clampedFillY, bulbDiam, canvas.height - clampedFillY);
 
     ctx.restore();
 
-    const tickLenMult = getVal('t-tick-len-range', 't-tick-len-num', 1.0);
-
-    // ── Ticks on RIGHT side of tube ──
-    // Base widths as fraction of tube width, scaled by user tick length multiplier
-    // Clamped so ticks never extend past the right glass wall at tRight
-    const maxTickW  = Math.round(IW * zoom) - tRight - 2;  // space available to right of tube
+    // ── Ticks ──
+    const maxTickW  = Math.round(IW * zoom) - tRight - 2;
     const tickMajW  = Math.min(tW * 0.90 * tickLenMult, maxTickW);
     const tickMedW  = Math.min(tW * 0.60 * tickLenMult, maxTickW);
     const tickMinW  = Math.min(tW * 0.38 * tickLenMult, maxTickW);
-    const range     = maxV - minV;
     const subVal    = major / subs;
     const decPlaces = Math.max(0, -Math.floor(Math.log10(Math.abs(subVal) || 1)));
 
@@ -169,7 +167,6 @@ const thermometer = (() => {
 
     let tickIdx = 0;
     let v = minV;
-    // Draw ticks as long as they are within tube bounds
     while (true) {
       const y = tickValToY(v);
       if (y < tTop - 2) break;
@@ -191,14 +188,17 @@ const thermometer = (() => {
     }
     ctx.restore();
 
-    // ── Dashed reading line (black) ──
+    // ── Dashed reading line ──
     ctx.save();
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth   = Math.max(1, 1.5 * zoom);
-    ctx.setLineDash([4 * zoom, 3 * zoom]);
+    const fullW     = Math.round(IW * zoom) + labelPad;
+    const dashStart = tLeft - 8 * zoom;
+    const dashEnd   = dashStart + (fullW - dashStart) * dashLenMult;
+    ctx.strokeStyle = dashColor;
+    ctx.lineWidth   = Math.max(0.5, dashThick * zoom);
+    ctx.setLineDash([5 * zoom, 3 * zoom]);
     ctx.beginPath();
-    ctx.moveTo(tLeft - 8 * zoom, clampedFillY);
-    ctx.lineTo(tRight + tickMajW + 4, clampedFillY);
+    ctx.moveTo(dashStart, clampedFillY);
+    ctx.lineTo(dashEnd,   clampedFillY);
     ctx.stroke();
     ctx.setLineDash([]);
 
