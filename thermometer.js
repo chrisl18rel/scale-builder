@@ -40,6 +40,7 @@ const thermometer = (() => {
 
   document.getElementById('t-dash-color').addEventListener('input', draw);
   document.getElementById('t-show-reading').addEventListener('change', draw);
+  document.getElementById('t-label-all-ticks').addEventListener('change', draw);
   document.getElementById('t-transparent').addEventListener('change', () => {
     updateBgClass('t-checker', isChecked('t-transparent'));
     draw();
@@ -79,9 +80,9 @@ const thermometer = (() => {
     const minV        = numVal('t-min', -10);
     const major       = Math.max(0.01, numVal('t-major', 10));
     const subs        = Math.max(1, Math.round(numVal('t-subs', 5)));
-    const reading     = Math.min(maxV, Math.max(minV, numVal('t-reading', 25)));
     const unit        = strVal('t-unit', '°C');
     const showRead    = isChecked('t-show-reading');
+    const labelAllTicks = isChecked('t-label-all-ticks');
     const transparent = isChecked('t-transparent');
     const lblOffX     = getVal('t-lbl-x-range', 't-lbl-x-num', 0);
     const lblOffY     = getVal('t-lbl-y-range', 't-lbl-y-num', 0);
@@ -89,6 +90,22 @@ const thermometer = (() => {
     const dashColor   = strVal('t-dash-color', '#222222');
     const dashThick   = getVal('t-dash-thick-range', 't-dash-thick-num', 1.5);
     const dashLenMult = getVal('t-dash-len-range',   't-dash-len-num',   1.0);
+
+    // Reading: use exact string from input to preserve user-entered decimals
+    const readingEl  = document.getElementById('t-reading');
+    const readingRaw = readingEl ? readingEl.value : '25';
+    const reading    = Math.max(minV, parseFloat(readingRaw) || 0);
+    // Count decimal places as typed by the user
+    const dotIdx     = readingRaw.indexOf('.');
+    const userDecPlaces = dotIdx >= 0 ? readingRaw.length - dotIdx - 1 : 0;
+
+    // Update minor tick info box
+    const subVal     = major / subs;
+    const minorEl    = document.getElementById('t-minor-val');
+    const minorUnitEl = document.getElementById('t-minor-unit');
+    const subDecPlaces = Math.max(0, -Math.floor(Math.log10(Math.abs(subVal) || 1)));
+    if (minorEl)    minorEl.textContent    = parseFloat(subVal.toFixed(subDecPlaces));
+    if (minorUnitEl) minorUnitEl.textContent = unit;
 
     // Right padding for tick labels
     const labelPad = Math.round(fontSize * 5 + 60);
@@ -116,7 +133,14 @@ const thermometer = (() => {
     }
 
     const fillY        = tickValToY(reading);
-    const clampedFillY = Math.max(tTop + 1, Math.min(tBot, fillY));
+    // Clamp liquid to tube bounds — never above tTop, never below tBot
+    const clampedFillY = Math.max(tTop, Math.min(tBot, fillY));
+    // Is the reading off the visible scale (above the top tick)?
+    const isOffScale   = fillY < tTop;
+
+    // Update off-scale warning
+    const warnEl = document.getElementById('t-offscale-warning');
+    if (warnEl) warnEl.style.display = isOffScale ? 'block' : 'none';
 
     // ── Draw image first ──
     if (img) {
@@ -124,25 +148,26 @@ const thermometer = (() => {
     }
 
     // ── Red liquid: two separate clipped regions ──
-    // Combining shapes in one clip path creates a union that leaks outside the glass.
-    // Instead: clip to tube rect separately, then clip to bulb arc separately.
-    const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight, 0);
+    const liquidGrad = ctx.createLinearGradient(tLeft, 0, tRight + 2 * zoom, 0);
     liquidGrad.addColorStop(0,    'rgb(200, 30,  30)');
     liquidGrad.addColorStop(0.25, 'rgb(235, 65,  65)');
     liquidGrad.addColorStop(0.75, 'rgb(235, 65,  65)');
     liquidGrad.addColorStop(1,    'rgb(200, 30,  30)');
 
-    // 1. Tube portion — clipped to narrow rect only
+    // Tube rect (+2px right as requested, clamped to tTop so liquid never escapes top)
+    const tubeRight = tRight + 2 * zoom;
+    const tubeW     = tubeRight - tLeft;
+
     ctx.save();
     ctx.beginPath();
-    ctx.rect(tLeft, clampedFillY, tW, (tBot + 20 * zoom) - clampedFillY);
+    ctx.rect(tLeft, clampedFillY, tubeW, (tBot + 20 * zoom) - clampedFillY);
     ctx.clip();
     ctx.globalCompositeOperation = 'multiply';
     ctx.fillStyle = liquidGrad;
-    ctx.fillRect(tLeft, clampedFillY, tW, (tBot + 20 * zoom) - clampedFillY);
+    ctx.fillRect(tLeft, clampedFillY, tubeW, (tBot + 20 * zoom) - clampedFillY);
     ctx.restore();
 
-    // 2. Bulb portion — clipped to arc only
+    // Bulb arc
     ctx.save();
     ctx.beginPath();
     ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
@@ -157,8 +182,7 @@ const thermometer = (() => {
     const tickMajW  = Math.min(tW * 0.90 * tickLenMult, maxTickW);
     const tickMedW  = Math.min(tW * 0.60 * tickLenMult, maxTickW);
     const tickMinW  = Math.min(tW * 0.38 * tickLenMult, maxTickW);
-    const subVal    = major / subs;
-    const decPlaces = Math.max(0, -Math.floor(Math.log10(Math.abs(subVal) || 1)));
+    const decPlaces = subDecPlaces;
 
     ctx.save();
     ctx.strokeStyle  = '#222';
@@ -181,7 +205,8 @@ const thermometer = (() => {
         ctx.moveTo(tRight, y);
         ctx.lineTo(tRight + tw, y);
         ctx.stroke();
-        if (isMajor) {
+        // Label: always on major ticks; or every tick if labelAllTicks is checked
+        if (isMajor || labelAllTicks) {
           ctx.fillText(parseFloat(v.toFixed(decPlaces)) + ' ' + unit, tRight + tickMajW + 4, y);
         }
       }
@@ -191,34 +216,37 @@ const thermometer = (() => {
     }
     ctx.restore();
 
-    // ── Dashed reading line ──
-    ctx.save();
-    const fullW     = Math.round(IW * zoom) + labelPad;
-    const dashStart = tLeft - 8 * zoom;
-    const dashEnd   = dashStart + (fullW - dashStart) * dashLenMult;
-    ctx.strokeStyle = dashColor;
-    ctx.lineWidth   = Math.max(0.5, dashThick * zoom);
-    ctx.setLineDash([5 * zoom, 3 * zoom]);
-    ctx.beginPath();
-    ctx.moveTo(dashStart, clampedFillY);
-    ctx.lineTo(dashEnd,   clampedFillY);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    // ── Dashed reading line — only if NOT off scale ──
+    if (!isOffScale) {
+      ctx.save();
+      const fullW     = Math.round(IW * zoom) + labelPad;
+      const dashStart = tLeft - 8 * zoom;
+      const dashEnd   = dashStart + (fullW - dashStart) * dashLenMult;
+      ctx.strokeStyle = dashColor;
+      ctx.lineWidth   = Math.max(0.5, dashThick * zoom);
+      ctx.setLineDash([5 * zoom, 3 * zoom]);
+      ctx.beginPath();
+      ctx.moveTo(dashStart, clampedFillY);
+      ctx.lineTo(dashEnd,   clampedFillY);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-    if (showRead) {
-      const lblText  = reading.toFixed(decPlaces) + ' ' + unit;
-      const lblX     = tRight + tickMajW + 6 + lblOffX;
-      const lblBaseY = clampedFillY + lblOffY;
-      const lblW     = ctx.measureText(lblText).width + 14;
-      ctx.fillStyle = 'rgba(255,255,255,0.92)';
-      ctx.fillRect(lblX - 4, lblBaseY - fontSize - 2, lblW, fontSize + 8);
-      ctx.fillStyle    = '#c00';
-      ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-      ctx.textAlign    = 'left';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText(lblText, lblX, lblBaseY + 2);
+      if (showRead) {
+        // Use exact user-entered decimal places for the label
+        const lblText  = reading.toFixed(userDecPlaces) + ' ' + unit;
+        const lblX     = tRight + tickMajW + 6 + lblOffX;
+        const lblBaseY = clampedFillY + lblOffY;
+        const lblW     = ctx.measureText(lblText).width + 14;
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.fillRect(lblX - 4, lblBaseY - fontSize - 2, lblW, fontSize + 8);
+        ctx.fillStyle    = '#c00';
+        ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+        ctx.textAlign    = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(lblText, lblX, lblBaseY + 2);
+      }
+      ctx.restore();
     }
-    ctx.restore();
   }
 
   function exportPNG() {
