@@ -221,11 +221,6 @@ const thermometer = (() => {
         if (py < h - 1) { const ni = p + w; if (!visited[ni] && isBg(ni)) { visited[ni] = 1; queue.push(ni); } }
       }
 
-      // Make all background-connected pixels transparent
-      for (let i = 0; i < visited.length; i++) {
-        if (visited[i]) d[i * 4 + 3] = 0;
-      }
-
       // ── Second pass: remove enclosed white regions above the tube top (e.g. hanging ring) ──
       // Only scan y < TUBE_TOP * zoom — the glass interior is far below this line
       const ringZoneH = Math.round(TUBE_TOP * zoom);
