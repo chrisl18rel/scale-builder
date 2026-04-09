@@ -113,10 +113,10 @@ const thermometer = (() => {
     canvas.height = Math.round(IH * zoom);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // Always fill white — multiply blend needs white pixels to show red liquid.
-    // In transparent mode we strip the background AFTER all drawing via a mask.
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (!transparent) {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     // Scaled geometry
     const tLeft  = TUBE_LEFT  * zoom;
@@ -250,36 +250,6 @@ const thermometer = (() => {
       ctx.restore();
     }
   }
-
-    // ── Transparent mode: flood-fill mask punches out background ──
-    // Flood fill starts from image border edges, fills through connected
-    // white/near-white pixels, stops at the dark glass outline.
-    // This correctly leaves the glass interior opaque while removing outside background.
-    if (transparent && img) {
-      const imgW = Math.round(IW * zoom);
-      const imgH = Math.round(IH * zoom);
-
-      // Build mask canvas
-      const mask  = document.createElement('canvas');
-      mask.width  = canvas.width;
-      mask.height = canvas.height;
-      const mctx  = mask.getContext('2d');
-
-      // Thermometer body: flood-fill removes only the connected background
-      const thermMask = createOutlineMask(img, imgW, imgH, 220);
-      mctx.drawImage(thermMask, 0, 0);
-
-      // Label/tick area to the right: keep fully opaque
-      mctx.fillStyle = '#000';
-      mctx.fillRect(imgW, 0, canvas.width - imgW, canvas.height);
-
-      // Apply mask to main canvas
-      ctx.globalCompositeOperation = 'destination-in';
-      ctx.drawImage(mask, 0, 0);
-      ctx.globalCompositeOperation = 'source-over';
-    }
-
-  }  // end draw()
 
   function exportPNG() {
     draw();
