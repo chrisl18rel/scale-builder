@@ -251,26 +251,27 @@ const thermometer = (() => {
     }
   }
 
-    // ── Transparent mode: punch out background using thermometer shape as mask ──
-    // destination-in keeps main canvas pixels only where mask is opaque.
-    // threshold=254 removes pure-white (255,255,255) background while keeping
-    // the slightly blue-tinted glass interior and all thermometer body pixels.
+    // ── Transparent mode: flood-fill mask punches out background ──
+    // Flood fill starts from image border edges, fills through connected
+    // white/near-white pixels, stops at the dark glass outline.
+    // This correctly leaves the glass interior opaque while removing outside background.
     if (transparent && img) {
       const imgW = Math.round(IW * zoom);
       const imgH = Math.round(IH * zoom);
 
-      // Build mask: thermometer body + label area opaque, outside-glass background transparent
+      // Build mask canvas
       const mask  = document.createElement('canvas');
       mask.width  = canvas.width;
       mask.height = canvas.height;
       const mctx  = mask.getContext('2d');
 
-      // Label/tick area to the right of thermometer image: keep fully opaque
+      // Thermometer body: flood-fill removes only the connected background
+      const thermMask = createOutlineMask(img, imgW, imgH, 220);
+      mctx.drawImage(thermMask, 0, 0);
+
+      // Label/tick area to the right: keep fully opaque
       mctx.fillStyle = '#000';
       mctx.fillRect(imgW, 0, canvas.width - imgW, canvas.height);
-
-      // Thermometer body: strip pure-white (255,255,255) background only
-      drawImageWithTransparentBg(mctx, img, 0, 0, imgW, imgH, 254);
 
       // Apply mask to main canvas
       ctx.globalCompositeOperation = 'destination-in';
