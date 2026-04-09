@@ -113,10 +113,10 @@ const thermometer = (() => {
     canvas.height = Math.round(IH * zoom);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (!transparent) {
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
+    // Always fill white — multiply blend needs white pixels to show red liquid.
+    // In transparent mode we strip the background AFTER all drawing via a mask.
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Scaled geometry
     const tLeft  = TUBE_LEFT  * zoom;
@@ -250,6 +250,35 @@ const thermometer = (() => {
       ctx.restore();
     }
   }
+
+    // ── Transparent mode: punch out background using thermometer shape as mask ──
+    // destination-in keeps main canvas pixels only where mask is opaque.
+    // threshold=254 removes pure-white (255,255,255) background while keeping
+    // the slightly blue-tinted glass interior and all thermometer body pixels.
+    if (transparent && img) {
+      const imgW = Math.round(IW * zoom);
+      const imgH = Math.round(IH * zoom);
+
+      // Build mask: thermometer body + label area opaque, outside-glass background transparent
+      const mask  = document.createElement('canvas');
+      mask.width  = canvas.width;
+      mask.height = canvas.height;
+      const mctx  = mask.getContext('2d');
+
+      // Label/tick area to the right of thermometer image: keep fully opaque
+      mctx.fillStyle = '#000';
+      mctx.fillRect(imgW, 0, canvas.width - imgW, canvas.height);
+
+      // Thermometer body: strip pure-white (255,255,255) background only
+      drawImageWithTransparentBg(mctx, img, 0, 0, imgW, imgH, 254);
+
+      // Apply mask to main canvas
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.drawImage(mask, 0, 0);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+  }  // end draw()
 
   function exportPNG() {
     draw();
