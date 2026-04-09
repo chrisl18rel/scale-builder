@@ -1,5 +1,6 @@
 // thermometer.js
 
+
 const thermometer = (() => {
   // Image dimensions: 158×872
   const IW = 158, IH = 872;
@@ -176,6 +177,56 @@ const thermometer = (() => {
     ctx.fillStyle = liquidGrad;
     ctx.fillRect(bCX - bR, bCY - bR, bR * 2, bR * 2);
     ctx.restore();
+
+    // ── Remove white background via edge flood fill (transparent mode only) ──
+    if (transparent) {
+      const imgW = Math.round(IW * zoom);
+      const imgH = Math.round(IH * zoom);
+      const idata = ctx.getImageData(0, 0, imgW, imgH);
+      const d = idata.data;
+      const w = imgW, h = imgH;
+      const fillThresh = 220;
+
+      // visited[]: 1 = reachable from edge (background), will become transparent
+      const visited = new Uint8Array(w * h);
+      const queue = [];
+
+      function pIdx(x, y) { return y * w + x; }
+      function isBg(pi) {
+        const i4 = pi * 4;
+        return d[i4] > fillThresh && d[i4+1] > fillThresh && d[i4+2] > fillThresh && d[i4+3] > 0;
+      }
+
+      // Seed all edge pixels that are light enough
+      for (let x = 0; x < w; x++) {
+        const top = pIdx(x, 0), bot = pIdx(x, h - 1);
+        if (isBg(top)) { visited[top] = 1; queue.push(top); }
+        if (isBg(bot)) { visited[bot] = 1; queue.push(bot); }
+      }
+      for (let y = 1; y < h - 1; y++) {
+        const lft = pIdx(0, y), rgt = pIdx(w - 1, y);
+        if (isBg(lft)) { visited[lft] = 1; queue.push(lft); }
+        if (isBg(rgt)) { visited[rgt] = 1; queue.push(rgt); }
+      }
+
+      // BFS flood fill — spreads through connected light pixels, stops at dark glass outline
+      let head = 0;
+      while (head < queue.length) {
+        const p = queue[head++];
+        const px = p % w;
+        const py = (p - px) / w;
+        if (px > 0)     { const ni = p - 1; if (!visited[ni] && isBg(ni)) { visited[ni] = 1; queue.push(ni); } }
+        if (px < w - 1) { const ni = p + 1; if (!visited[ni] && isBg(ni)) { visited[ni] = 1; queue.push(ni); } }
+        if (py > 0)     { const ni = p - w; if (!visited[ni] && isBg(ni)) { visited[ni] = 1; queue.push(ni); } }
+        if (py < h - 1) { const ni = p + w; if (!visited[ni] && isBg(ni)) { visited[ni] = 1; queue.push(ni); } }
+      }
+
+      // Make all background-connected pixels transparent
+      for (let i = 0; i < visited.length; i++) {
+        if (visited[i]) d[i * 4 + 3] = 0;
+      }
+      ctx.putImageData(idata, 0, 0);
+    }
 
     // ── Ticks ──
     const maxTickW  = Math.round(IW * zoom) - tRight - 2;
