@@ -115,53 +115,7 @@ function drawImageWithTransparentBg(ctx, img, dx, dy, dw, dh, threshold = 240) {
   ctx.drawImage(off, dx, dy);
 }
 
-/**
- * Creates a mask canvas from an image using flood-fill from the image borders.
- * Connected light pixels reachable from the edges = background → alpha 0.
- * Everything else (glass body, interior) = opaque → alpha 255.
- * This correctly separates the outside background from the glass interior
- * even when both are near-white, because the dark glass outline blocks the fill.
- * fillThreshold: pixels with r,g,b all above this are considered "background-like"
- * and can be flooded. Lower = more selective (won't cross darker glass pixels).
- */
-function createOutlineMask(img, w, h, fillThreshold = 220) {
-  const off = document.createElement('canvas');
-  off.width = w; off.height = h;
-  const octx = off.getContext('2d');
-  octx.drawImage(img, 0, 0, w, h);
-
-  const idata = octx.getImageData(0, 0, w, h);
-  const d = idata.data;
-  const visited = new Uint8Array(w * h);
-  const queue = [];
-
-  function enqueue(pi) {
-    if (pi < 0 || pi >= w * h || visited[pi]) return;
-    const idx = pi * 4;
-    if (d[idx] > fillThreshold && d[idx+1] > fillThreshold && d[idx+2] > fillThreshold) {
-      visited[pi] = 1;
-      queue.push(pi);
-    }
-  }
-
-  // Seed from all four edges
-  for (let x = 0; x < w; x++) { enqueue(x); enqueue((h-1)*w + x); }
-  for (let y = 0; y < h; y++) { enqueue(y*w); enqueue(y*w + w-1); }
-
-  // BFS flood fill
-  while (queue.length > 0) {
-    const pi = queue.pop();
-    d[pi * 4 + 3] = 0;   // make background pixel transparent
-    const x = pi % w, y = Math.floor(pi / w);
-    if (x > 0)   enqueue(pi - 1);
-    if (x < w-1) enqueue(pi + 1);
-    if (y > 0)   enqueue(pi - w);
-    if (y < h-1) enqueue(pi + w);
-  }
-
-  octx.putImageData(idata, 0, 0);
-  return off;
-}
+// Wire beam 3 subs slider label
 const b3subsSlider = document.getElementById('b3-subs');
 const b3subsLabel  = document.getElementById('b3-subs-val');
 if (b3subsSlider && b3subsLabel) {
