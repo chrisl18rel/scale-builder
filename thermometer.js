@@ -234,13 +234,15 @@ const thermometer = (() => {
       if (showRead) {
         // Use exact user-entered decimal places for the label
         const lblText  = reading.toFixed(userDecPlaces) + ' ' + unit;
-        const lblX     = tRight + tickMajW + 6 + lblOffX;
-        const lblBaseY = clampedFillY + lblOffY;
+        ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
         const lblW     = ctx.measureText(lblText).width + 14;
+        // Place label centered at midpoint of the dashed line
+        const midX     = (dashStart + dashEnd) / 2;
+        const lblX     = midX - lblW / 2 + lblOffX;
+        const lblBaseY = clampedFillY + lblOffY;
         ctx.fillStyle = 'rgba(255,255,255,0.92)';
         ctx.fillRect(lblX - 4, lblBaseY - fontSize - 2, lblW, fontSize + 8);
         ctx.fillStyle    = '#c00';
-        ctx.font         = `bold ${fontSize}px 'Segoe UI', sans-serif`;
         ctx.textAlign    = 'left';
         ctx.textBaseline = 'bottom';
         ctx.fillText(lblText, lblX, lblBaseY + 2);
