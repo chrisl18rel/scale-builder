@@ -221,31 +221,7 @@ const thermometer = (() => {
         if (py < h - 1) { const ni = p + w; if (!visited[ni] && isBg(ni)) { visited[ni] = 1; queue.push(ni); } }
       }
 
-      // ── Second pass: remove enclosed white regions above the tube top (e.g. hanging ring) ──
-      // Only scan y < TUBE_TOP * zoom — the glass interior is far below this line
-      const ringZoneH = Math.round(TUBE_TOP * zoom);
-      for (let y = 0; y < ringZoneH; y++) {
-        for (let x = 0; x < w; x++) {
-          const pi = pIdx(x, y);
-          if (!visited[pi] && isBg(pi)) {
-            // Found enclosed white pixel in ring zone — flood fill from here
-            const rq = [pi];
-            visited[pi] = 1;
-            let rh = 0;
-            while (rh < rq.length) {
-              const p = rq[rh++];
-              const px = p % w;
-              const py = (p - px) / w;
-              if (px > 0)     { const ni = p - 1; if (!visited[ni] && isBg(ni)) { visited[ni] = 1; rq.push(ni); } }
-              if (px < w - 1) { const ni = p + 1; if (!visited[ni] && isBg(ni)) { visited[ni] = 1; rq.push(ni); } }
-              if (py > 0)     { const ni = p - w; if (!visited[ni] && isBg(ni)) { visited[ni] = 1; rq.push(ni); } }
-              if (py < h - 1) { const ni = p + w; if (!visited[ni] && isBg(ni)) { visited[ni] = 1; rq.push(ni); } }
-            }
-          }
-        }
-      }
-
-      // Apply transparency to all visited pixels (main fill + ring fill)
+      // Make all background-connected pixels transparent
       for (let i = 0; i < visited.length; i++) {
         if (visited[i]) d[i * 4 + 3] = 0;
       }
