@@ -10,6 +10,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById('tab-' + target).classList.add('active');
     if (target === 'ruler')    { setTimeout(() => ruler.draw(), 50); }
     if (target === 'cylinder') { setTimeout(() => cylinder.draw(), 50); }
+    if (target === 'buret')    { setTimeout(() => buret.draw(), 50); }
     if (target === 'balance')  { setTimeout(() => balance.draw(), 50); }
     if (target === 'therm')    { setTimeout(() => thermometer.draw(), 50); }
   });

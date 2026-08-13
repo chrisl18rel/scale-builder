@@ -22,6 +22,7 @@
   <nav class="tab-nav">
     <button class="tab-btn active" data-tab="ruler">📏 Ruler</button>
     <button class="tab-btn" data-tab="cylinder">🧪 Graduated Cylinder</button>
+    <button class="tab-btn" data-tab="buret">💧 Buret</button>
     <button class="tab-btn" data-tab="balance">⚖️ Triple Beam Balance</button>
     <button class="tab-btn" data-tab="therm">🌡️ Thermometer</button>
   </nav>
@@ -238,6 +239,116 @@
           <div class="canvas-scroll-wrapper">
             <div id="c-checker" class="checker-bg white-bg">
               <canvas id="cylinder-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ BURET TAB ═══════════════════ -->
+    <section id="tab-buret" class="tab-panel">
+      <div class="panel-layout">
+        <aside class="controls-panel">
+
+          <div class="control-group">
+            <div class="group-title">SCALE SETTINGS</div>
+            <div class="two-col">
+              <div>
+                <label>Max Capacity</label>
+                <input type="number" id="bu-max" value="50" min="1" />
+              </div>
+              <div>
+                <label>Unit</label>
+                <input type="text" id="bu-unit" value="mL" />
+              </div>
+            </div>
+            <div class="two-col">
+              <div>
+                <label>Major Division</label>
+                <input type="number" id="bu-major" value="5" min="0.1" step="0.1" />
+              </div>
+              <div>
+                <label>Subdivisions</label>
+                <input type="number" id="bu-subs" value="10" min="1" step="1" />
+              </div>
+            </div>
+            <div id="bu-minor-info" style="font-size:11px;color:var(--accent);background:rgba(74,144,226,0.08);border:1px solid rgba(74,144,226,0.25);border-radius:4px;padding:6px 8px;margin-top:2px;">
+              Each minor tick = <strong id="bu-minor-val">0.5</strong> <span id="bu-minor-unit">mL</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">READING</div>
+            <label>Reading Value (bottom of meniscus — 0 at top)</label>
+            <input type="number" id="bu-reading" value="12.5" min="0" step="0.05" />
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">DISPLAY</div>
+
+            <div class="slider-zoom">
+              <label>Image Zoom (%)</label>
+              <div class="slider-input-row">
+                <input type="range" id="bu-zoom-range" min="20" max="200" value="45" />
+                <input type="number" id="bu-zoom-num" value="45" min="20" max="200" step="1" />
+              </div>
+            </div>
+
+            <div class="slider-tick">
+              <label>Scale Stretch (px/major div)</label>
+              <div class="slider-input-row">
+                <input type="range" id="bu-tick-range" min="5" max="400" value="44" />
+                <input type="number" id="bu-tick-num" value="44" min="5" max="400" step="1" />
+              </div>
+            </div>
+
+            <div class="slider-font">
+              <label>Text Size (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="bu-fontsize-range" min="6" max="48" value="14" />
+                <input type="number" id="bu-fontsize-num" value="14" min="6" max="48" step="1" />
+              </div>
+            </div>
+
+            <div class="display-divider"></div>
+
+            <div class="toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" id="bu-show-reading" checked />
+                Show reading value
+              </label>
+            </div>
+
+            <div class="slider-offset">
+              <label>Reading Label Offset X (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="bu-lbl-x-range" min="-150" max="150" value="0" />
+                <input type="number" id="bu-lbl-x-num" value="0" min="-150" max="150" step="1" />
+              </div>
+              <label>Reading Label Offset Y (px)</label>
+              <div class="slider-input-row">
+                <input type="range" id="bu-lbl-y-range" min="-150" max="150" value="0" />
+                <input type="number" id="bu-lbl-y-num" value="0" min="-150" max="150" step="1" />
+              </div>
+            </div>
+
+          </div>
+
+          <div class="control-group">
+            <div class="group-title">EXPORT</div>
+            <label class="toggle-label">
+              <input type="checkbox" id="bu-transparent" />
+              Transparent background
+            </label>
+            <button class="export-btn" onclick="buret.exportPNG()">⬇ Export PNG</button>
+          </div>
+
+        </aside>
+        <div class="preview-panel">
+          <div class="preview-label">Live Preview — scroll down if needed</div>
+          <div class="canvas-scroll-wrapper">
+            <div id="bu-checker" class="checker-bg white-bg">
+              <canvas id="buret-canvas"></canvas>
             </div>
           </div>
         </div>
@@ -648,6 +759,7 @@
   <script src="app.js"></script>
   <script src="ruler.js"></script>
   <script src="cylinder.js"></script>
+  <script src="buret.js"></script>
   <script src="balance.js"></script>
   <script src="thermometer.js"></script>
 </body>
