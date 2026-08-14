@@ -124,24 +124,24 @@ const balance = (() => {
       getVal('b3-scale-x-range','b3-scale-x-num', 1.0),
     ];
 
-    const b1step = Math.max(0.01,  numVal('b1-step', 10));
-    const b2step = Math.max(0.01,  numVal('b2-step', 100));
+    const b1step = Math.max(0.01,  numVal('b1-step', 100));
+    const b2step = Math.max(0.01,  numVal('b2-step', 10));
     const b3step = Math.max(0.001, numVal('b3-step', 1));
 
     const beamConfigs = [
       {
         min:     Math.max(0, numVal('b1-min', 0)),
-        max:     numVal('b1-max', 100),
+        max:     numVal('b1-max', 500),
         step:    b1step,
-        reading: Math.max(0, numVal('b1-reading', 0)),
+        reading: Math.max(0, numVal('b1-reading', 100)),
         subs:    1,          // NO subdivisions on beam 1
         noSubs:  true,
       },
       {
         min:     Math.max(0, numVal('b2-min', 0)),
-        max:     numVal('b2-max', 500),
+        max:     numVal('b2-max', 100),
         step:    b2step,
-        reading: Math.max(0, numVal('b2-reading', 100)),
+        reading: Math.max(0, numVal('b2-reading', 0)),
         subs:    1,          // NO subdivisions on beam 2
         noSubs:  true,
       },
