@@ -94,9 +94,14 @@ const buret = (() => {
 
     // ── Single Y mapping — TOP-DOWN ──
     // Burets read from the top: 0 mL at tTop, values increase downward.
-    // Reading = volume dispensed. pxPerMajor drives spacing.
+    // Range-driven: minV→maxV spans the tube exactly at any zoom, so Max
+    // Capacity, Major Division, and Subdivisions always render correctly.
+    // The Scale Stretch slider acts as a multiplier relative to the exact
+    // fit (its default value of 44 = 1.0× = scale fills the tube).
+    const range   = Math.max(0.001, maxV - minV);
+    const stretch = pxPerMajor / 44;
     function tickValToY(v) {
-      return tTop + (v - minV) * (pxPerMajor / major);
+      return tTop + ((v - minV) / range) * (tBot - tTop) * stretch;
     }
 
     const fillY        = tickValToY(reading);

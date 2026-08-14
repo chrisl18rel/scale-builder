@@ -64,7 +64,7 @@ const ruler = (() => {
     const major       = Math.max(0.001, numVal('r-major', 1));
     const subs        = Math.max(1, Math.round(numVal('r-subs', 10)));
     const startVal    = Math.max(0, numVal('r-start', 0));
-    const reading     = Math.max(0, numVal('r-reading', 4.3));
+    const readingIn   = Math.max(0, numVal('r-reading', 4.3));
     const unit        = strVal('r-unit', 'cm');
     const showRead    = isChecked('r-show-reading');
     const transparent = isChecked('r-transparent');
@@ -141,8 +141,12 @@ const ruler = (() => {
     ctx.restore();
 
     // Arrow
+    // Clamp the reading to the visible scale: never left of the start
+    // value, never past the last value on the ruler.
     const rulerWidthPx = rRight - rLeft;
     const numMajorFit  = rulerWidthPx / pxPerMajor;
+    const endVal       = startVal + major * numMajorFit;
+    const reading      = Math.min(endVal, Math.max(startVal, readingIn));
     const readFrac     = (reading - startVal) / (major * numMajorFit);
     const readX        = rLeft + readFrac * rulerWidthPx;
     const arrowTipY    = rTop - 4 * zoom;

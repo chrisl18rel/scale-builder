@@ -79,9 +79,14 @@ const cylinder = (() => {
 
     // ── Single Y mapping ──
     // Both liquid fill and ticks use this. tBot = 0 mL, values increase upward.
-    // pxPerMajor drives spacing; at default settings this fills the tube nicely.
+    // Range-driven: minV→maxV spans the tube exactly at any zoom, so Max
+    // Capacity, Major Division, and Subdivisions always render correctly.
+    // The Scale Stretch slider acts as a multiplier relative to the exact
+    // fit (its default value of 50 = 1.0× = scale fills the tube).
+    const range   = Math.max(0.001, maxV - minV);
+    const stretch = pxPerMajor / 50;
     function tickValToY(v) {
-      return tBot - (v - minV) * (pxPerMajor / major);
+      return tBot - ((v - minV) / range) * (tBot - tTop) * stretch;
     }
 
     const fillY        = tickValToY(reading);
@@ -169,9 +174,10 @@ const cylinder = (() => {
 
     let tickIdx = 0;
     let v = minV;
-    while (tickValToY(v) >= tTop - 2) {
+    // Stop at max capacity — no ticks beyond the labeled scale
+    while (v <= maxV + subVal * 0.001) {
       const y = tickValToY(v);
-      if (y <= tBot + 2) {
+      if (y >= tTop - 2 && y <= tBot + 2) {
         const isMajor = (tickIdx % subs === 0);
         const isMid   = !isMajor && subs >= 4 && (tickIdx % Math.floor(subs / 2) === 0);
         const tw      = isMajor ? tickMajW : isMid ? tickMedW : tickMinW;

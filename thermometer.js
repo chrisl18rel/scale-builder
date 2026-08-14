@@ -129,8 +129,14 @@ const thermometer = (() => {
     const bCY    = BULB_CY * zoom;
     const bR     = BULB_R  * zoom;
 
+    // Range-driven: minV→maxV spans the tube exactly at any zoom, so Min,
+    // Max, Major Division, and Subdivisions always render correctly.
+    // The Scale Stretch slider acts as a multiplier relative to the exact
+    // fit (its default value of 40 = 1.0× = scale fills the tube).
+    const range   = Math.max(0.001, maxV - minV);
+    const stretch = pxPerMajor / 40;
     function tickValToY(v) {
-      return tBot - (v - minV) * (pxPerMajor / major);
+      return tBot - ((v - minV) / range) * (tBot - tTop) * stretch;
     }
 
     const fillY        = tickValToY(reading);
